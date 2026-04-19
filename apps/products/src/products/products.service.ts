@@ -8,6 +8,6 @@ export class ProductsService {
     return PRODUCTS
   }
   getProductById(id: number):ProductDTO | undefined {
-    return  PRODUCTS.find(p => p.id === id);
+    return  PRODUCTS.find(p => p.id === +id);
   }
 }

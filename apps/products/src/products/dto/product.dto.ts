@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 class ProductSpecDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'UltraBook Pro 15' })
   readonly name!: string;
   @ApiProperty()
   readonly brand!: string;
@@ -12,7 +12,7 @@ class ProductSpecDto {
 }
 
 class OfferDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'HDFC' })
   readonly bankCard!: string;
   @ApiProperty()
   readonly minPriceToApply!: number;
