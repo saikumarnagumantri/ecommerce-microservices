@@ -5,12 +5,18 @@ import {
   Get,
   Logger,
   Param,
+  Patch,
+  Post,
   Put,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { INVENTORY_INVALID_PRODUCT_ID } from 'src/constants/inventory.constants';
-import { InventoryDTO, InventoryUpdateDTO } from 'src/dto/inventory.dto';
-import { ApiOkResponse } from '@nestjs/swagger';
+import {
+  InventoryDTO,
+  InventoryOrderPlacedOrCancelDTO,
+  InventoryUpdateDTO,
+} from 'src/dto/inventory.dto';
+import { ApiBody, ApiOkResponse } from '@nestjs/swagger';
 
 @Controller('inventory')
 export class InventoryController {
@@ -34,18 +40,73 @@ export class InventoryController {
     }
   }
 
+  @Get('/slectedProducts/:productIds')
+  @ApiOkResponse({ type: InventoryDTO, isArray: true })
+  getInventoryByProductIds(@Param('productIds') productIds: string) {
+    if (this.isProductIdValid(productIds)) {
+      this.logger.warn(`${INVENTORY_INVALID_PRODUCT_ID}  ${productIds}`);
+    }
+    return this.inventoryService.getInventoryByProductIds(productIds);
+  }
+
   @Put(':productId')
+  @ApiOkResponse({ type: InventoryDTO, isArray: true })
   updateInventoryByProductId(
     @Param('productId') productId: number,
     @Body() updateInventory: InventoryUpdateDTO,
   ) {
     if (this.isProductIdValid(productId)) {
-        return this.inventoryService.updateInventoryByProduct(productId, updateInventory)
+      return this.inventoryService.updateInventoryByProduct(
+        productId,
+        updateInventory,
+      );
     }
   }
 
+  /**
+   * Update stock on order placed
+   * @param orderedProducts
+   * @returns
+   */
+  @Patch('update-stock-ordered') // Added a sub-route for clarity
+  @ApiBody({ type: InventoryOrderPlacedOrCancelDTO })
+  @ApiOkResponse({ description: 'Stock updated successfully' })
+  updateInventoryStockByOrder(
+    @Body() orderedProducts: InventoryOrderPlacedOrCancelDTO, // Added () to @Body
+  ) {
+    return this.inventoryService.updateInventoryStockByOrder(orderedProducts);
+  }
+
+  /**
+   * Update stock on order placed
+   * @param cancelledProducts
+   * @returns
+   */
+  @Patch('update-stock-cancelled') // Added a sub-route for clarity
+  @ApiBody({ type: InventoryOrderPlacedOrCancelDTO })
+  @ApiOkResponse({ description: 'Stock updated successfully' })
+  updateInventoryStockByCancel(
+    @Body() cancelledProducts: InventoryOrderPlacedOrCancelDTO, // Added () to @Body
+  ) {
+    return this.inventoryService.updateInventoryStockByCancel(
+      cancelledProducts,
+    );
+  }
+
+  @Post('new-product-inventory')
+  @ApiBody({ type: InventoryUpdateDTO })
+  @ApiOkResponse({ description: 'Inventory updated succesfully' })
+  addNewProductToInventory(@Body() inventory: InventoryUpdateDTO) {
+    return this.inventoryService.addNewProductToInventory(inventory);
+  }
+  /**
+   * Product validation check
+   * @param productId
+   * @returns
+   */
   isProductIdValid(productId) {
-    if (typeof productId !== 'number') {
+    const productReg = new RegExp(/^[0-9,]+$/);
+    if (!productReg.test(productId)) {
       this.logger.warn(`${INVENTORY_INVALID_PRODUCT_ID}  ${productId}`);
       throw new BadRequestException(
         `${INVENTORY_INVALID_PRODUCT_ID} ${productId}`,

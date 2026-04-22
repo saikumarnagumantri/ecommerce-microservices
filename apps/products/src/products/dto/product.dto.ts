@@ -40,4 +40,6 @@ export class ProductDTO {
   readonly offers!: OfferDto[];
   @ApiProperty()
   readonly images!: string[];
+  @ApiProperty({example:true})
+  isOutOfStock!: boolean;
 }

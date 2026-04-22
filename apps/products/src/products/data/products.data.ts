@@ -13,7 +13,8 @@ export const PRODUCTS = [
     originalPrice: 1500,
     discountPrice: 1350,
     offers: [{ bankCard: "HDFC", minPriceToApply: 1000, maxDiscount: 150, discountPercentage: 10 }],
-    images: ["laptop1.jpg", "laptop2.jpg"]
+    images: ["laptop1.jpg", "laptop2.jpg"],
+    isOutOfStock: true
   },
   {
     id: 202,
@@ -29,7 +30,8 @@ export const PRODUCTS = [
     originalPrice: 450,
     discountPrice: 399,
     offers: [{ bankCard: "ICICI", minPriceToApply: 300, maxDiscount: 50, discountPercentage: 5 }],
-    images: ["chair1.jpg"]
+    images: ["chair1.jpg"],
+    isOutOfStock: true
   },
   {
     id: 303,
@@ -45,7 +47,8 @@ export const PRODUCTS = [
     originalPrice: 350,
     discountPrice: 299,
     offers: [],
-    images: ["headphone.jpg"]
+    images: ["headphone.jpg"],
+    isOutOfStock: true
   },
   {
     id: 404,
@@ -61,7 +64,8 @@ export const PRODUCTS = [
     originalPrice: 500,
     discountPrice: 450,
     offers: [{ bankCard: "HDFC", minPriceToApply: 400, maxDiscount: 50, discountPercentage: 10 }],
-    images: ["watch1.jpg", "watch2.jpg"]
+    images: ["watch1.jpg", "watch2.jpg"],
+    isOutOfStock: true
   },
   {
     id: 505,
@@ -77,6 +81,7 @@ export const PRODUCTS = [
     originalPrice: 250,
     discountPrice: 210,
     offers: [{ bankCard: "SBI", minPriceToApply: 100, maxDiscount: 20, discountPercentage: 10 }],
-    images: ["coffee_machine.jpg"]
+    images: ["coffee_machine.jpg"],
+    isOutOfStock: true
   }
 ];
