@@ -40,9 +40,9 @@ export class InventoryController {
     }
   }
 
-  @Get('/slectedProducts/:productIds')
+  @Get()
   @ApiOkResponse({ type: InventoryDTO, isArray: true })
-  getInventoryByProductIds(@Param('productIds') productIds: string) {
+  getBulkInventory(@Query('productIds') ids: string) {
     if (this.isProductIdValid(productIds)) {
       this.logger.warn(`${INVENTORY_INVALID_PRODUCT_ID}  ${productIds}`);
     }
