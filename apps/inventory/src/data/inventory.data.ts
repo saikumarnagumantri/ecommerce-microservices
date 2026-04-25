@@ -2,12 +2,12 @@ export const INVENTORY = [
   {
     productId: 101,
     stock: 20,
-    isAvailable: false,
+    isAvailable: true,
   },
   {
     productId: 202,
     stock: 30,
-    isAvailable: false,
+    isAvailable: true,
   },
   {
     productId: 303,

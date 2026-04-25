@@ -20,4 +20,38 @@ export class ProductsService {
     this.logger.log(`Successfully fetched product: ${product.name}`);
     return product;
   }
+
+  getProductsByIds(productIds: string): ProductDTO[] | undefined {
+    if (!productIds) return [];
+
+    // 1. Clean and parse the input
+    // split by comma and optional whitespace, then filter out empty values
+    const productArray = productIds
+      .split(',')
+      .map((id) => id.trim())
+      .filter((id) => id !== '');
+
+    // 2. Performance optimization: Use a Set for O(1) lookups
+    const idSet = new Set(productArray);
+
+    // 3. Filter inventory ensuring type consistency
+    const products = PRODUCTS.filter((inv) => idSet.has(inv.id.toString()));
+
+    // 4. Error Handling
+    // Note: .filter() always returns an array, even if empty.
+    if (products.length === 0) {
+      this.logger.warn(
+        `Search failed: Product with ID ${productIds} not found.`,
+      );
+      throw new NotFoundException(`Product with id ${productIds} not found`);
+    }
+
+    if (productArray.length !== products.length) {
+      this.logger.warn(
+        `Missing products: requested ${productArray.length}, found ${products.length}`,
+      );
+    }
+
+    return products;
+  }
 }

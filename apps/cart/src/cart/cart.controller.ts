@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { CartAddRemoveDTO, CartDTO } from './dto/cart.dto';
+import { CartAddRemoveDTO, CartDTO, CartResponseDto } from './dto/cart.dto';
 import {
   INVALID_PRODUCT_ID,
   INVALID_USER_ID,
@@ -23,13 +23,15 @@ export class CartController {
   private readonly logger = new Logger(CartController.name);
 
   @Get(':userId')
-  @ApiOkResponse({ type: CartDTO, isArray: true })
-  getCartByUserId(@Param('userId') userId: number): CartDTO[] | [] {
+  @ApiOkResponse({ type: CartResponseDto })
+  async getCartByUserId(
+    @Param('userId') userId: number,
+  ): Promise<CartResponseDto> {
     if (isNaN(userId)) {
       this.logger.warn(`${INVALID_PRODUCT_ID} ${userId}`);
       throw new BadRequestException(`${INVALID_PRODUCT_ID} ${userId}`);
     }
-    return this.cartService.getCartByUserId(userId);
+    return await this.cartService.getCart(userId);
   }
 
   @Post()

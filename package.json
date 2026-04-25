@@ -9,10 +9,12 @@
     "start:products": "cd apps/products && npm run start:dev",
     "start:inventory": "cd apps/inventory && npm run start:dev",
     "start:cart": "cd apps/cart && npm run start:dev",
-
-    "start:all": "npm run start:infra"
+    "start:all": "concurrently \"npm run start:products\" \"npm run start:inventory\" \"npm run start:cart\""
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

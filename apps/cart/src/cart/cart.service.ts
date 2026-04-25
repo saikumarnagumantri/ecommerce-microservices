@@ -6,24 +6,68 @@ import {
   CART_UPDATE_SUCCESFULLY,
   PRODUCT_NOT_AVAILABLE,
 } from './constants/cart.constants';
-import { CartAddRemoveDTO, CartDTO } from './dto/cart.dto';
+import { CartAddRemoveDTO, CartDTO, CartResponseDto } from './dto/cart.dto';
+import { getProductsByIds } from './exteranl/products.client';
+import { getInventoryByIds } from './exteranl/inventory.client';
 
 @Injectable()
 export class CartService {
   private readonly logger = new Logger(CartService.name);
 
-  /**
-   * Fetch Products in cart by user ID
-   * @param userId
-   * @returns
-   */
-  getCartByUserId(userId: number): CartDTO[] | [] {
+  getCartByUserId(userId: number) {
     const cart = CARTDATA.filter((cart) => cart.userId === +userId);
     if (cart.length === 0) {
       this.logger.error(`${CART_EMPTY}`);
     }
 
+    const productIds = cart.map((prodt) => prodt.productId);
+    console.log(productIds);
+
     return cart;
+  }
+  /**
+   * Fetch Products in cart by user ID
+   * @param userId
+   * @returns
+   */
+  async getCart(userId: number): Promise<CartResponseDto> {
+    const cart = this.getCartByUserId(userId); // your existing method
+
+    const productIds = cart.map((i) => i.productId);
+
+    // 🔥 Parallel calls
+    const results = await Promise.allSettled([
+      getProductsByIds(productIds),
+      getInventoryByIds(productIds),
+    ]);
+    if (results[0].status === 'rejected') {
+      this.logger.error('Products service failed');
+    }
+
+    if (results[1].status === 'rejected') {
+      this.logger.error('Inventory service failed');
+    }
+    const products = results[0].status === 'fulfilled' ? results[0].value : [];
+    const inventory = results[1].status === 'fulfilled' ? results[1].value : [];
+
+    // 🔗 Merge
+    const items = cart.map((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      const stock = inventory.find((i) => i.productId === item.productId);
+
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        name: product?.name ?? 'Unavailable',
+        price: product?.discountPrice ?? product?.originalPrice ?? 0,
+        isAvailable: stock?.isAvailable ?? false,
+      };
+    });
+
+    return {
+      userId,
+      items,
+    };
   }
 
   /**
