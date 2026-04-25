@@ -1,17 +1,17 @@
 export const INVENTORY = [
   {
     productId: 101,
-    inStock: 20,
-    isOutOfStock: false,
+    stock: 20,
+    isAvailable: false,
   },
   {
     productId: 202,
-    inStock: 30,
-    isOutOfStock: false,
+    stock: 30,
+    isAvailable: false,
   },
   {
     productId: 303,
-    inStock: 30,
-    isOutOfStock: true,
+    stock: 30,
+    isAvailable: true,
   },
 ];

@@ -38,3 +38,11 @@ export class InventoryOrderPlacedOrCancelDTO {
   })
   items!: Record<number, { quantity: number }>;
 }
+
+export class UpdateInventoryByProductIdDTO {
+  @ApiProperty({ example: 10 })
+  stock!: number;
+
+  @ApiProperty({ example: true })
+  isAvailable!: boolean;
+}

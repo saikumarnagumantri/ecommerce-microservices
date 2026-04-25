@@ -4,24 +4,36 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { INVENTORY_NOT_FOUND } from 'src/constants/inventory.constants';
+import {
+  INVENTORY_NOT_FOUND,
+  PRODUCT_NOT_FOUND_TO_UPDATE,
+  PRODUCT_UPDATED_SUCCESSFULLY,
+} from 'src/constants/inventory.constants';
 import { INVENTORY } from 'src/data/inventory.data';
 import {
   InventoryDTO,
   InventoryOrderPlacedOrCancelDTO,
   InventoryUpdateDTO,
+  UpdateInventoryByProductIdDTO,
 } from 'src/dto/inventory.dto';
 
 @Injectable()
 export class InventoryService {
   private readonly logger = new Logger(InventoryService.name);
 
+  private mapToDto(item: any): InventoryDTO {
+    return {
+      productId: item.productId,
+      stock: item.inStock,
+      isAvailable: item.inStock > 0,
+    };
+  }
   /**
    * Fetch all products
    * @returns
    */
   getFullInventory() {
-    return INVENTORY;
+    return INVENTORY.map((item) => this.mapToDto(item));
   }
 
   /**
@@ -32,10 +44,11 @@ export class InventoryService {
   getInventoryByProductId(productId: number): InventoryDTO | undefined {
     const inventory = INVENTORY.filter((inv) => inv.productId === +productId);
 
-    if (!inventory.length) {
-      throw new NotFoundException(`${INVENTORY_NOT_FOUND} ${productId}`);
+    if (!inventory[0]) {
+      throw new NotFoundException(`Product ${productId} not found`);
     }
-    return inventory[0] || undefined;
+
+    return this.mapToDto(inventory[0]);
   }
 
   /**
@@ -74,11 +87,15 @@ export class InventoryService {
       );
     }
 
-    return products;
+    return products.map((p) => this.mapToDto(p));
   }
 
   addNewProductToInventory(addInventory: InventoryUpdateDTO) {
-    INVENTORY.push(addInventory);
+    INVENTORY.push({
+      productId: addInventory.productId,
+      stock: addInventory.stock,
+      isAvailable: addInventory.stock <= 0,
+    });
     return 'Inventory Updated succesfully';
   }
   /**
@@ -88,12 +105,32 @@ export class InventoryService {
    * @returns
    */
   updateInventoryByProduct(
-    productId: number,
-    updateInventory: InventoryUpdateDTO,
+    productId: string,
+    updateInventory: UpdateInventoryByProductIdDTO,
   ) {
-    return INVENTORY.map((inv) =>
-      inv.productId === productId ? updateInventory : inv,
-    );
+    try {
+      // 1. Find the reference to the object
+      const product = INVENTORY.find((inv) => inv.productId === +productId);
+
+      if (product) {
+        // 2. Updating this 'product' variable updates the item inside INVENTORY
+        product.stock = updateInventory.stock;
+        product.isAvailable =
+          updateInventory.stock > 0 || updateInventory.isAvailable;
+        this.logger.log(
+          `${PRODUCT_UPDATED_SUCCESSFULLY} ProductID: ${productId} Payload: ${JSON.stringify(updateInventory)}`,
+        );
+        return `${PRODUCT_UPDATED_SUCCESSFULLY}`;
+      } else {
+        this.logger.warn(`${PRODUCT_NOT_FOUND_TO_UPDATE} : ${productId}`);
+        throw new NotFoundException(
+          `${PRODUCT_NOT_FOUND_TO_UPDATE} : ${productId}`,
+        );
+      }
+    } catch (err) {
+      this.logger.error(err);
+      throw new BadRequestException(err);
+    }
   }
 
   /**
@@ -114,7 +151,7 @@ export class InventoryService {
           inv.stock -= order.quantity;
 
           // 3. Simplified boolean logic
-          inv.isAvailable = inv.inStock <= 0;
+          inv.isAvailable = inv.stock <= 0;
         }
         return inv;
       });

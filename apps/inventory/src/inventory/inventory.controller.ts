@@ -16,6 +16,7 @@ import {
   InventoryDTO,
   InventoryOrderPlacedOrCancelDTO,
   InventoryUpdateDTO,
+  UpdateInventoryByProductIdDTO,
 } from 'src/dto/inventory.dto';
 import { ApiBody, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 
@@ -51,11 +52,11 @@ export class InventoryController {
     }
   }
 
-  @Put(':productId')
-  @ApiOkResponse({ type: InventoryDTO, isArray: true })
+  @Patch(':productId')
+  @ApiOkResponse({ description: 'Product stuck updated succesfully' })
   updateInventoryByProductId(
-    @Param('productId') productId: number,
-    @Body() updateInventory: InventoryUpdateDTO,
+    @Param('productId') productId: string,
+    @Body() updateInventory: UpdateInventoryByProductIdDTO,
   ) {
     if (this.isProductIdValid(productId)) {
       return this.inventoryService.updateInventoryByProduct(
