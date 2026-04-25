@@ -31,7 +31,7 @@ export class InventoryController {
     return this.inventoryService.getFullInventory();
   }
 
-  @Get('bulk')
+  @Get('bulk-by-product')
   @ApiQuery({ name: 'productIds', required: true, example: '101,102' })
   @ApiOkResponse({ type: InventoryDTO, isArray: true })
   getBulkInventory(@Query('productIds') productIds: string) {

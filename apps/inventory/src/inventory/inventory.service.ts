@@ -111,10 +111,10 @@ export class InventoryService {
 
         if (order) {
           // 2. Access quantity from the specific order object
-          inv.inStock -= order.quantity;
+          inv.stock -= order.quantity;
 
           // 3. Simplified boolean logic
-          inv.isOutOfStock = inv.inStock <= 0;
+          inv.isAvailable = inv.inStock <= 0;
         }
         return inv;
       });
@@ -139,7 +139,7 @@ export class InventoryService {
         const order = cancelledProducts.items[inv.productId];
         if (order) {
           // 2. Access quantity from the specific order object
-          inv.inStock += order.quantity;
+          inv.stock += order.quantity;
         }
         return inv;
       });

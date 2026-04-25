@@ -5,10 +5,10 @@ export class InventoryDTO {
   productId!: number;
 
   @ApiProperty({ example: 100 })
-  inStock!: number;
+  stock!: number;
 
   @ApiProperty({ example: true })
-  isOutOfStock!: boolean;
+  isAvailable!: boolean;
 }
 
 export class InventoryUpdateDTO {
@@ -16,10 +16,10 @@ export class InventoryUpdateDTO {
   productId!: number;
 
   @ApiProperty({ example: 100 })
-  inStock!: number;
+  stock!: number;
 
   @ApiProperty({ example: true })
-  isOutOfStock!: boolean;
+  isAvailable!: boolean;
 }
 
 export class InventoryOrderPlacedOrCancelDTO {
