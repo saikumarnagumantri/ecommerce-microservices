@@ -29,14 +29,13 @@ export class InventoryService {
    * @param productId
    * @returns
    */
-  getInventoryByProductId(productId: number): InventoryDTO[] | undefined {
-    console.log('Here');
+  getInventoryByProductId(productId: number): InventoryDTO | undefined {
     const inventory = INVENTORY.filter((inv) => inv.productId === +productId);
 
-    if (!inventory) {
+    if (!inventory.length) {
       throw new NotFoundException(`${INVENTORY_NOT_FOUND} ${productId}`);
     }
-    return inventory;
+    return inventory[0] || undefined;
   }
 
   /**
@@ -105,7 +104,6 @@ export class InventoryService {
   updateInventoryStockByOrder(
     orderedProducts: InventoryOrderPlacedOrCancelDTO,
   ) {
-    console.log(INVENTORY, orderedProducts);
     try {
       INVENTORY.map((inv) => {
         // 1. Get the specific order for this product
@@ -121,7 +119,6 @@ export class InventoryService {
         return inv;
       });
 
-      console.log(INVENTORY, 'INVENTORY');
       return true;
     } catch (err) {
       throw new BadRequestException(err);

@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { INVENTORY_INVALID_PRODUCT_ID } from 'src/constants/inventory.constants';
@@ -16,7 +17,7 @@ import {
   InventoryOrderPlacedOrCancelDTO,
   InventoryUpdateDTO,
 } from 'src/dto/inventory.dto';
-import { ApiBody, ApiOkResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 
 @Controller('inventory')
 export class InventoryController {
@@ -30,23 +31,24 @@ export class InventoryController {
     return this.inventoryService.getFullInventory();
   }
 
-  @Get(':productId')
+  @Get('bulk')
+  @ApiQuery({ name: 'productIds', required: true, example: '101,102' })
   @ApiOkResponse({ type: InventoryDTO, isArray: true })
-  getInventoryByproduct(
-    @Param('productId') productId: number,
-  ): InventoryDTO[] | undefined {
-    if (this.isProductIdValid(productId)) {
-      return this.inventoryService.getInventoryByProductId(productId);
-    }
-  }
-
-  @Get()
-  @ApiOkResponse({ type: InventoryDTO, isArray: true })
-  getBulkInventory(@Query('productIds') ids: string) {
+  getBulkInventory(@Query('productIds') productIds: string) {
     if (this.isProductIdValid(productIds)) {
       this.logger.warn(`${INVENTORY_INVALID_PRODUCT_ID}  ${productIds}`);
     }
     return this.inventoryService.getInventoryByProductIds(productIds);
+  }
+
+  @Get(':productId')
+  @ApiOkResponse({ type: InventoryDTO })
+  getInventoryByProduct(
+    @Param('productId') productId: number,
+  ): InventoryDTO | undefined {
+    if (this.isProductIdValid(productId)) {
+      return this.inventoryService.getInventoryByProductId(productId);
+    }
   }
 
   @Put(':productId')
