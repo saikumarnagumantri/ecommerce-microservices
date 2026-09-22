@@ -5,8 +5,8 @@ class ProductSpecDto {
   readonly name!: string;
   @ApiProperty()
   readonly brand!: string;
-  @ApiProperty()
-  readonly yearOfManufacture!: Date;
+  @ApiProperty({ example: '2024-01-15T00:00:00.000Z' })
+  readonly yearOfManufacture!: string;
   @ApiProperty()
   readonly material!: string;
 }

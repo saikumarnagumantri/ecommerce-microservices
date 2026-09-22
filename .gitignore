@@ -11,6 +11,8 @@ build/
 # Env
 .env
 .env.*
+!.env.example
+!apps/*/.env.example
 
 # Logs
 logs/
@@ -30,3 +32,6 @@ apps/*/dist/
 
 # Optional (if using coverage)
 coverage/
+
+# Packed local library tarballs (libs/*/*.tgz) — rebuilt by npm pack, not committed
+*.tgz

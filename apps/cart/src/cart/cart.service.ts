@@ -1,41 +1,46 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { CARTDATA } from './data/cart.data';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import {
   CART_EMPTY,
   CART_REMOVED_SUCCESFULLY,
   CART_UPDATE_SUCCESFULLY,
   PRODUCT_NOT_AVAILABLE,
 } from './constants/cart.constants';
-import { CartAddRemoveDTO, CartDTO, CartResponseDto } from './dto/cart.dto';
+import { CartAddRemoveDTO, CartResponseDto } from './dto/cart.dto';
 import { getProductsByIds } from './exteranl/products.client';
 import { getInventoryByIds } from './exteranl/inventory.client';
+import { CartItem } from './entities/cart-item.entity';
 
 @Injectable()
 export class CartService {
   private readonly logger = new Logger(CartService.name);
 
-  getCartByUserId(userId: number) {
-    const cart = CARTDATA.filter((cart) => cart.userId === +userId);
+  constructor(
+    @InjectRepository(CartItem)
+    private readonly cartRepository: Repository<CartItem>,
+  ) {}
+
+  async getCartByUserId(userId: number): Promise<CartItem[]> {
+    const cart = await this.cartRepository.findBy({ userId: +userId });
     if (cart.length === 0) {
-      this.logger.error(`${CART_EMPTY}`);
+      this.logger.log(`${CART_EMPTY} for user ${userId}`);
     }
-
-    const productIds = cart.map((prodt) => prodt.productId);
-    console.log(productIds);
-
     return cart;
   }
+
   /**
-   * Fetch Products in cart by user ID
-   * @param userId
-   * @returns
+   * Fetch products in cart by user ID, aggregated with live price and
+   * stock from the products and inventory services.
    */
   async getCart(userId: number): Promise<CartResponseDto> {
-    const cart = this.getCartByUserId(userId); // your existing method
+    const cart = await this.getCartByUserId(userId);
 
     const productIds = cart.map((i) => i.productId);
+    if (productIds.length === 0) {
+      return { userId, items: [] };
+    }
 
-    // 🔥 Parallel calls
     const results = await Promise.allSettled([
       getProductsByIds(productIds),
       getInventoryByIds(productIds),
@@ -43,14 +48,12 @@ export class CartService {
     if (results[0].status === 'rejected') {
       this.logger.error('Products service failed');
     }
-
     if (results[1].status === 'rejected') {
       this.logger.error('Inventory service failed');
     }
     const products = results[0].status === 'fulfilled' ? results[0].value : [];
     const inventory = results[1].status === 'fulfilled' ? results[1].value : [];
 
-    // 🔗 Merge
     const items = cart.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       const stock = inventory.find((i) => i.productId === item.productId);
@@ -64,42 +67,45 @@ export class CartService {
       };
     });
 
-    return {
-      userId,
-      items,
-    };
+    return { userId, items };
   }
 
   /**
-   * Adding products to cart
-   * @param cartAdd
-   * @returns
+   * Adding products to cart. Merges into the existing row for this
+   * user+product rather than creating a duplicate.
    */
-  addProductToCart(cartAdd: CartAddRemoveDTO): string {
-    try {
-      CARTDATA.push({
+  async addProductToCart(cartAdd: CartAddRemoveDTO): Promise<string> {
+    if (!(cartAdd.quantity > 0)) {
+      throw new BadRequestException('Quantity must be greater than 0');
+    }
+
+    const existing = await this.cartRepository.findOneBy({
+      userId: cartAdd.userId,
+      productId: cartAdd.productId,
+    });
+
+    if (existing) {
+      existing.quantity += cartAdd.quantity;
+      await this.cartRepository.save(existing);
+    } else {
+      await this.cartRepository.save({
         userId: cartAdd.userId,
         productId: cartAdd.productId,
         quantity: cartAdd.quantity,
       });
-      return `${CART_UPDATE_SUCCESFULLY}`;
-    } catch (err) {
-      this.logger.error(err);
-      throw new BadRequestException(err);
     }
+    return CART_UPDATE_SUCCESFULLY;
   }
 
   /**
-   * Updating products in cart
-   * @param userId
-   * @param data
-   * @returns
+   * Updating the quantity of one product in the cart. Removes the row
+   * once the quantity reaches zero or below.
    */
-  updateQuantityByProduct(userId: number, data: CartAddRemoveDTO): string {
-    const cart = CARTDATA.find(
-      (cart) =>
-        cart.userId === data.userId && cart?.productId === data.productId,
-    );
+  async updateQuantityByProduct(userId: number, data: CartAddRemoveDTO): Promise<string> {
+    const cart = await this.cartRepository.findOneBy({
+      userId: +userId,
+      productId: data.productId,
+    });
 
     if (!cart) {
       this.logger.warn(`${PRODUCT_NOT_AVAILABLE}`);
@@ -107,39 +113,24 @@ export class CartService {
     }
 
     cart.quantity += data.quantity;
-    if (cart.quantity === 0) {
-      CARTDATA.filter(
-        (cart) =>
-          cart.userId === data.userId && cart?.productId !== data.productId,
-      );
+    if (cart.quantity <= 0) {
+      await this.cartRepository.remove(cart);
+    } else {
+      await this.cartRepository.save(cart);
     }
-    console.log(cart, CARTDATA);
 
     return CART_UPDATE_SUCCESFULLY;
   }
 
-  /**
-   * Removing all items in cart
-   * @param userId
-   * @returns
-   */
-  deleteCartByUserid(userId: number): string {
-    let cart = CARTDATA.filter((cart) => cart.userId !== userId);
-
-    cart.length = 0;
-
+  /** Removing all items in the cart for a user. */
+  async deleteCartByUserid(userId: number): Promise<string> {
+    await this.cartRepository.delete({ userId: +userId });
     return CART_REMOVED_SUCCESFULLY;
   }
 
-  /**
-   *
-   * @param userId
-   * @param productId
-   * @returns
-   */
-  deleteCartByproductId(userId, productId): CartDTO[] | [] {
-    return CARTDATA.filter(
-      (cart) => cart.userId === +userId && cart.productId !== +productId,
-    );
+  /** Removes one product from the cart and returns what's left for that user. */
+  async deleteCartByproductId(userId: number, productId: number): Promise<CartItem[]> {
+    await this.cartRepository.delete({ userId: +userId, productId: +productId });
+    return this.cartRepository.findBy({ userId: +userId });
   }
 }

@@ -17,14 +17,13 @@ export class ProductsController {
   private readonly logger = new Logger(ProductsController.name);
   @Get()
   @ApiOkResponse({ type: ProductDTO, isArray: true })
-  getProducts(): ProductDTO[] {
+  getProducts(): Promise<ProductDTO[]> {
     return this.productService.getProducts();
   }
   @Get('bulk-by-product/')
   @ApiQuery({ name: 'productIds', required: true, example: '101,102' })
   @ApiOkResponse({ type: ProductDTO, isArray: true })
   getBulkInventory(@Query('productIds') productIds: string) {
-    console.log(productIds);
     if (this.isProductIdValid(productIds)) {
       return this.productService.getProductsByIds(productIds);
     }
@@ -32,7 +31,7 @@ export class ProductsController {
 
   @Get(':id')
   @ApiOkResponse({ type: ProductDTO })
-  getProductById(@Param('id') id: number): ProductDTO | undefined {
+  getProductById(@Param('id') id: number): Promise<ProductDTO> {
     const productId = Number(id);
 
     if (isNaN(productId)) {

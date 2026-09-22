@@ -36,7 +36,7 @@ export class CartController {
 
   @Post()
   @ApiOkResponse({ description: 'Product added to cart' })
-  addProductToCart(@Body() cartAdd: CartAddRemoveDTO): string {
+  addProductToCart(@Body() cartAdd: CartAddRemoveDTO): Promise<string> {
     return this.cartService.addProductToCart(cartAdd);
   }
 
@@ -60,7 +60,7 @@ export class CartController {
       this.logger.warn(`${INVALID_PRODUCT_ID} ${userId}`);
       throw new BadRequestException(`${INVALID_PRODUCT_ID} ${userId}`);
     }
-    this.cartService.deleteCartByUserid(userId);
+    return this.cartService.deleteCartByUserid(userId);
   }
 
   @Delete('deleteCartByproductId/:userId/:productId')

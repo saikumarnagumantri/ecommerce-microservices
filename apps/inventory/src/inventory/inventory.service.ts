@@ -1,188 +1,181 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import {
   INVENTORY_NOT_FOUND,
   PRODUCT_NOT_FOUND_TO_UPDATE,
   PRODUCT_UPDATED_SUCCESSFULLY,
-} from 'src/constants/inventory.constants';
-import { INVENTORY } from 'src/data/inventory.data';
+} from '../constants/inventory.constants';
 import {
   InventoryDTO,
   InventoryOrderPlacedOrCancelDTO,
   InventoryUpdateDTO,
   UpdateInventoryByProductIdDTO,
-} from 'src/dto/inventory.dto';
+} from '../dto/inventory.dto';
+import { Inventory } from '../entities/inventory.entity';
 
 @Injectable()
 export class InventoryService {
   private readonly logger = new Logger(InventoryService.name);
 
-  private mapToDto(item: any): InventoryDTO {
+  constructor(
+    @InjectRepository(Inventory)
+    private readonly inventoryRepository: Repository<Inventory>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  private mapToDto(item: { productId: number; stock: number }): InventoryDTO {
     return {
       productId: item.productId,
-      stock: item.inStock,
-      isAvailable: item.inStock > 0,
+      stock: item.stock,
+      isAvailable: item.stock > 0,
     };
   }
-  /**
-   * Fetch all products
-   * @returns
-   */
-  getFullInventory() {
-    return INVENTORY.map((item) => this.mapToDto(item));
+
+  async getFullInventory(): Promise<InventoryDTO[]> {
+    const rows = await this.inventoryRepository.find();
+    return rows.map((item) => this.mapToDto(item));
   }
 
-  /**
-   * Fetch product by productId
-   * @param productId
-   * @returns
-   */
-  getInventoryByProductId(productId: number): InventoryDTO | undefined {
-    const inventory = INVENTORY.filter((inv) => inv.productId === +productId);
-
-    if (!inventory[0]) {
+  async getInventoryByProductId(productId: number): Promise<InventoryDTO> {
+    const inventory = await this.inventoryRepository.findOneBy({ productId: +productId });
+    if (!inventory) {
       throw new NotFoundException(`Product ${productId} not found`);
     }
-
-    return this.mapToDto(inventory[0]);
+    return this.mapToDto(inventory);
   }
 
-  /**
-   *
-   * @param productIds Products as string ex: 101,202, 303
-   * @returns InventoryDTO[] returns products matches to productIds
-   */
-  getInventoryByProductIds(productIds: string): InventoryDTO[] | undefined {
+  async getInventoryByProductIds(productIds: string): Promise<InventoryDTO[]> {
     if (!productIds) return [];
 
-    // 1. Clean and parse the input
-    // split by comma and optional whitespace, then filter out empty values
     const productArray = productIds
       .split(',')
       .map((id) => id.trim())
       .filter((id) => id !== '');
 
-    // 2. Performance optimization: Use a Set for O(1) lookups
-    const idSet = new Set(productArray);
+    const idSet = [...new Set(productArray.map((id) => +id))];
+    const rows = await this.inventoryRepository.findBy({ productId: In(idSet) });
 
-    // 3. Filter inventory ensuring type consistency
-    const products = INVENTORY.filter((inv) =>
-      idSet.has(inv.productId.toString()),
-    );
-
-    // 4. Error Handling
-    // Note: .filter() always returns an array, even if empty.
-    if (products.length === 0) {
+    if (rows.length === 0) {
       this.logger.warn(`${INVENTORY_NOT_FOUND} ${productIds}`);
       throw new NotFoundException(`${INVENTORY_NOT_FOUND} ${productIds}`);
     }
 
-    if (productArray.length !== products.length) {
+    if (productArray.length !== rows.length) {
       this.logger.warn(
-        `Missing products: requested ${productArray.length}, found ${products.length}`,
+        `Missing products: requested ${productArray.length}, found ${rows.length}`,
       );
     }
 
-    return products.map((p) => this.mapToDto(p));
+    return rows.map((p) => this.mapToDto(p));
   }
 
-  addNewProductToInventory(addInventory: InventoryUpdateDTO) {
-    INVENTORY.push({
+  async addNewProductToInventory(addInventory: InventoryUpdateDTO): Promise<string> {
+    await this.inventoryRepository.save({
       productId: addInventory.productId,
       stock: addInventory.stock,
-      isAvailable: addInventory.stock <= 0,
+      isAvailable: addInventory.stock > 0,
     });
     return 'Inventory Updated succesfully';
   }
-  /**
-   * Updating the product inventory by product Id
-   * @param productId
-   * @param updateInventory
-   * @returns
-   */
-  updateInventoryByProduct(
+
+  async updateInventoryByProduct(
     productId: string,
     updateInventory: UpdateInventoryByProductIdDTO,
-  ) {
-    try {
-      // 1. Find the reference to the object
-      const product = INVENTORY.find((inv) => inv.productId === +productId);
+  ): Promise<string> {
+    const product = await this.inventoryRepository.findOneBy({ productId: +productId });
 
-      if (product) {
-        // 2. Updating this 'product' variable updates the item inside INVENTORY
-        product.stock = updateInventory.stock;
-        product.isAvailable =
-          updateInventory.stock > 0 || updateInventory.isAvailable;
-        this.logger.log(
-          `${PRODUCT_UPDATED_SUCCESSFULLY} ProductID: ${productId} Payload: ${JSON.stringify(updateInventory)}`,
-        );
-        return `${PRODUCT_UPDATED_SUCCESSFULLY}`;
-      } else {
-        this.logger.warn(`${PRODUCT_NOT_FOUND_TO_UPDATE} : ${productId}`);
-        throw new NotFoundException(
-          `${PRODUCT_NOT_FOUND_TO_UPDATE} : ${productId}`,
-        );
-      }
+    if (!product) {
+      this.logger.warn(`${PRODUCT_NOT_FOUND_TO_UPDATE} : ${productId}`);
+      throw new NotFoundException(`${PRODUCT_NOT_FOUND_TO_UPDATE} : ${productId}`);
+    }
+
+    product.stock = updateInventory.stock;
+    product.isAvailable = updateInventory.stock > 0;
+    await this.inventoryRepository.save(product);
+    this.logger.log(
+      `${PRODUCT_UPDATED_SUCCESSFULLY} ProductID: ${productId} Payload: ${JSON.stringify(updateInventory)}`,
+    );
+    return PRODUCT_UPDATED_SUCCESSFULLY;
+  }
+
+  /**
+   * Reduce stock for every line of a placed order, inside one transaction:
+   * every line is checked for sufficient stock before any row is written,
+   * and a row lock (SELECT ... FOR UPDATE) keeps two concurrent orders
+   * from both reading the same stock and both succeeding. The full
+   * concurrency-safe reserve/release design is E3-3; this is the baseline
+   * this story needs: a multi-item order can no longer partially apply.
+   */
+  async updateInventoryStockByOrder(
+    orderedProducts: InventoryOrderPlacedOrCancelDTO,
+  ): Promise<boolean> {
+    const productIds = Object.keys(orderedProducts.items).map(Number);
+    if (productIds.length === 0) return true;
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        const rows = await manager
+          .createQueryBuilder(Inventory, 'inventory')
+          .setLock('pessimistic_write')
+          .where('inventory.productId IN (:...productIds)', { productIds })
+          .getMany();
+
+        for (const productId of productIds) {
+          const row = rows.find((r) => r.productId === productId);
+          const order = orderedProducts.items[productId];
+          if (!row || row.stock < order.quantity) {
+            throw new BadRequestException(
+              `Insufficient stock for product ${productId}`,
+            );
+          }
+        }
+
+        for (const row of rows) {
+          const order = orderedProducts.items[row.productId];
+          row.stock -= order.quantity;
+          row.isAvailable = row.stock > 0;
+        }
+        await manager.save(rows);
+      });
+      return true;
+    } catch (err) {
+      if (err instanceof BadRequestException) throw err;
+      this.logger.error(err);
+      throw new BadRequestException(err instanceof Error ? err.message : err);
+    }
+  }
+
+  /**
+   * Restores stock for every line of a cancelled order, in one transaction.
+   */
+  async updateInventoryStockByCancel(
+    cancelledProducts: InventoryOrderPlacedOrCancelDTO,
+  ): Promise<boolean> {
+    const productIds = Object.keys(cancelledProducts.items).map(Number);
+    if (productIds.length === 0) return true;
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        const rows = await manager
+          .createQueryBuilder(Inventory, 'inventory')
+          .setLock('pessimistic_write')
+          .where('inventory.productId IN (:...productIds)', { productIds })
+          .getMany();
+
+        for (const row of rows) {
+          const order = cancelledProducts.items[row.productId];
+          if (order) {
+            row.stock += order.quantity;
+            row.isAvailable = row.stock > 0;
+          }
+        }
+        await manager.save(rows);
+      });
+      return true;
     } catch (err) {
       this.logger.error(err);
-      throw new BadRequestException(err);
-    }
-  }
-
-  /**
-   * Reduce the product quantity after order placed
-   * @param orderedProducts
-   * @returns
-   */
-  updateInventoryStockByOrder(
-    orderedProducts: InventoryOrderPlacedOrCancelDTO,
-  ) {
-    try {
-      INVENTORY.map((inv) => {
-        // 1. Get the specific order for this product
-        const order = orderedProducts.items[inv.productId];
-
-        if (order) {
-          // 2. Access quantity from the specific order object
-          inv.stock -= order.quantity;
-
-          // 3. Simplified boolean logic
-          inv.isAvailable = inv.stock <= 0;
-        }
-        return inv;
-      });
-
-      return true;
-    } catch (err) {
-      throw new BadRequestException(err);
-    }
-  }
-
-  /**
-   * Increase the product quantity after order placed
-   * @param orderedProducts
-   * @returns
-   */
-  updateInventoryStockByCancel(
-    cancelledProducts: InventoryOrderPlacedOrCancelDTO,
-  ): Boolean {
-    try {
-      INVENTORY.map((inv) => {
-        // 1. Get the specific order for this product
-        const order = cancelledProducts.items[inv.productId];
-        if (order) {
-          // 2. Access quantity from the specific order object
-          inv.stock += order.quantity;
-        }
-        return inv;
-      });
-      return true;
-    } catch (err) {
-      throw new BadRequestException(err);
+      throw new BadRequestException(err instanceof Error ? err.message : err);
     }
   }
 }

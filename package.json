@@ -6,10 +6,16 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start:infra": "docker-compose -f infra/docker-compose.yml up -d",
-    "start:products": "cd apps/products && npm run start:dev",
-    "start:inventory": "cd apps/inventory && npm run start:dev",
-    "start:cart": "cd apps/cart && npm run start:dev",
-    "start:all": "concurrently \"npm run start:products\" \"npm run start:inventory\" \"npm run start:cart\""
+    "start:products": "cmd /c \"cd apps/products && set PORT=3002 && npm run start:dev\"",
+    "start:inventory": "cmd /c \"cd apps/inventory && set PORT=3003 && npm run start:dev\"",
+    "start:cart": "cmd /c \"cd apps/cart && set PORT=3004 && npm run start:dev\"",
+    "start:admin": "cmd /c \"cd apps/admin && set PORT=3000 && npm run start:dev\"",
+    "start:api-gateway": "cmd /c \"cd apps/api-gateway && set PORT=3001 && npm run start:dev\"",
+    "start:users": "cmd /c \"cd apps/users && set PORT=3006 && npm run start:dev\"",
+    "start:product-image": "cmd /c \"cd apps/product-image && set PORT=3005 && npm run start:dev\"",
+    "start:all": "concurrently \"npm run start:products\" \"npm run start:inventory\" \"npm run start:cart\" \"npm run start:admin\" \"npm run start:api-gateway\" \"npm run start:users\" \"npm run start:product-image\"",
+    "build:all": "node scripts/run-all.js build",
+    "test:all": "node scripts/run-all.js test"
   },
   "keywords": [],
   "author": "",

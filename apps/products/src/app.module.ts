@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductsModule } from './products/products.module';
+import { dataSourceOptions } from './data-source';
 
 @Module({
-  imports: [ProductsModule]
+  imports: [TypeOrmModule.forRoot(dataSourceOptions), ProductsModule],
 })
 export class AppModule {}

@@ -1,9 +1,12 @@
+import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
+import { applyCommonGlobals } from '@salescart/common';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-   const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule);
+  applyCommonGlobals(app);
 
   const config = new DocumentBuilder()
     .setTitle('Products API')
@@ -14,9 +17,6 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(3002);
-
-  // const app = await NestFactory.create(AppModule);
-  // await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3002);
 }
 bootstrap();

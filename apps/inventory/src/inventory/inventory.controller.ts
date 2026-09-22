@@ -11,13 +11,13 @@ import {
   Query,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
-import { INVENTORY_INVALID_PRODUCT_ID } from 'src/constants/inventory.constants';
+import { INVENTORY_INVALID_PRODUCT_ID } from '../constants/inventory.constants';
 import {
   InventoryDTO,
   InventoryOrderPlacedOrCancelDTO,
   InventoryUpdateDTO,
   UpdateInventoryByProductIdDTO,
-} from 'src/dto/inventory.dto';
+} from '../dto/inventory.dto';
 import { ApiBody, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 
 @Controller('inventory')
@@ -27,7 +27,7 @@ export class InventoryController {
   private readonly logger = new Logger(InventoryController.name);
   @Get()
   @ApiOkResponse({ type: InventoryDTO, isArray: true })
-  getFullInventory(): InventoryDTO[] {
+  getFullInventory(): Promise<InventoryDTO[]> {
     this.logger.log('Full Inventory list');
     return this.inventoryService.getFullInventory();
   }
@@ -36,9 +36,7 @@ export class InventoryController {
   @ApiQuery({ name: 'productIds', required: true, example: '101,102' })
   @ApiOkResponse({ type: InventoryDTO, isArray: true })
   getBulkInventory(@Query('productIds') productIds: string) {
-    if (this.isProductIdValid(productIds)) {
-      this.logger.warn(`${INVENTORY_INVALID_PRODUCT_ID}  ${productIds}`);
-    }
+    this.isProductIdValid(productIds);
     return this.inventoryService.getInventoryByProductIds(productIds);
   }
 
@@ -46,23 +44,9 @@ export class InventoryController {
   @ApiOkResponse({ type: InventoryDTO })
   getInventoryByProduct(
     @Param('productId') productId: number,
-  ): InventoryDTO | undefined {
+  ): Promise<InventoryDTO> | undefined {
     if (this.isProductIdValid(productId)) {
       return this.inventoryService.getInventoryByProductId(productId);
-    }
-  }
-
-  @Patch(':productId')
-  @ApiOkResponse({ description: 'Product stuck updated succesfully' })
-  updateInventoryByProductId(
-    @Param('productId') productId: string,
-    @Body() updateInventory: UpdateInventoryByProductIdDTO,
-  ) {
-    if (this.isProductIdValid(productId)) {
-      return this.inventoryService.updateInventoryByProduct(
-        productId,
-        updateInventory,
-      );
     }
   }
 
@@ -94,6 +78,20 @@ export class InventoryController {
     return this.inventoryService.updateInventoryStockByCancel(
       cancelledProducts,
     );
+  }
+
+  @Patch(':productId')
+  @ApiOkResponse({ description: 'Product stuck updated succesfully' })
+  updateInventoryByProductId(
+    @Param('productId') productId: string,
+    @Body() updateInventory: UpdateInventoryByProductIdDTO,
+  ) {
+    if (this.isProductIdValid(productId)) {
+      return this.inventoryService.updateInventoryByProduct(
+        productId,
+        updateInventory,
+      );
+    }
   }
 
   @Post('new-product-inventory')

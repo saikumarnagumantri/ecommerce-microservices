@@ -1,0 +1,740 @@
+<title>SalesCart Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100,800;112,800&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#F1F4F6; --surface:#FFFFFF; --surface-2:#E7ECF0; --ink:#12202B; --muted:#55677A;
+  --line:#D3DBE2; --edge:#8496A4;
+  --cust:#2459D6; --cust-tint:#E4ECFC; --on-cust:#FFFFFF;
+  --adm:#A85300; --adm-tint:#FBEBD5; --on-adm:#FFFFFF;
+  --ok:#1B7A4B; --bad:#B3261E; --focus:#2459D6;
+  --font-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --font-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D151C; --surface:#152029; --surface-2:#1D2B36; --ink:#E5ECF1; --muted:#94A6B4;
+    --line:#2A3A47; --edge:#5A7285;
+    --cust:#84A8FF; --cust-tint:#1A2A4D; --on-cust:#0D151C;
+    --adm:#F2A650; --adm-tint:#3B2A14; --on-adm:#1A1206;
+    --ok:#4CC38A; --bad:#FF8A80; --focus:#84A8FF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D151C; --surface:#152029; --surface-2:#1D2B36; --ink:#E5ECF1; --muted:#94A6B4;
+  --line:#2A3A47; --edge:#5A7285;
+  --cust:#84A8FF; --cust-tint:#1A2A4D; --on-cust:#0D151C;
+  --adm:#F2A650; --adm-tint:#3B2A14; --on-adm:#1A1206;
+  --ok:#4CC38A; --bad:#FF8A80; --focus:#84A8FF;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.55;
+  padding-inline:clamp(16px,4vw,40px);-webkit-text-size-adjust:100%}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1120px;margin-inline:auto}
+h1,h2,h3{font-family:var(--font-display);font-stretch:112%;font-weight:800;text-wrap:balance;margin:0;line-height:1.1;letter-spacing:-.01em}
+h2{font-size:clamp(24px,3.4vw,34px)}
+h3{font-size:17px;letter-spacing:0}
+p{margin:0}
+.mono{font-family:var(--font-mono)}
+.eyebrow{font:500 11px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.lead{max-width:65ch;color:var(--muted);font-size:16px}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:10;background:var(--bg);border-bottom:1px solid var(--line);
+  margin-inline:calc(-1*clamp(16px,4vw,40px));padding-inline:clamp(16px,4vw,40px)}
+.nav-in{max-width:1120px;margin-inline:auto;display:flex;align-items:center;gap:6px;overflow-x:auto;padding-block:10px;scrollbar-width:none}
+.nav-in::-webkit-scrollbar{display:none}
+.brand{font:800 14px var(--font-display);font-stretch:112%;margin-right:auto;white-space:nowrap;padding-right:16px}
+.nav a{font:500 13px var(--font-body);text-decoration:none;padding:6px 12px;border-radius:6px;color:var(--muted);white-space:nowrap}
+.nav a:hover{background:var(--surface-2);color:var(--ink)}
+
+/* header */
+header.top{padding-block:44px 30px;display:grid;gap:22px}
+header.top h1{font-size:clamp(38px,7vw,72px);max-width:14ch}
+.waybill{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));border:1.5px dashed var(--edge);border-radius:4px;background:var(--surface)}
+.waybill div{padding:12px 14px;border-inline-start:1px dashed var(--edge);display:grid;gap:4px}
+.waybill div:first-child{border-inline-start:0}
+.waybill span{font:500 10px/1 var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.waybill b{font:500 20px/1.1 var(--font-mono);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+.k-cust{background:var(--cust)} .k-adm{background:var(--adm)} .k-sys{background:var(--surface-2);border:1px solid var(--edge)}
+
+section{padding-block:44px;border-top:1px solid var(--line);display:grid;gap:22px}
+.sub{display:grid;gap:12px}
+
+/* figures */
+figure{margin:0;display:grid;gap:10px}
+figcaption{font-size:13px;color:var(--muted);max-width:75ch}
+.scroll{overflow-x:auto;padding-bottom:6px}
+svg.dia{display:block;width:100%;min-width:760px;height:auto;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.dia text{font-family:var(--font-body);font-size:12px;fill:var(--ink)}
+.dia .m{font-family:var(--font-mono);font-size:10.5px;fill:var(--muted)}
+.dia .t{font-weight:700;font-size:13px}
+.dia .box{fill:var(--surface);stroke:var(--edge);stroke-width:1.3}
+.dia .box-c{fill:var(--cust-tint);stroke:var(--cust);stroke-width:1.5}
+.dia .box-a{fill:var(--adm-tint);stroke:var(--adm);stroke-width:1.5}
+.dia .box-s{fill:var(--surface-2);stroke:var(--edge);stroke-width:1.3}
+.dia .gw{fill:var(--surface-2);stroke:var(--ink);stroke-width:1.6}
+.dia .ln{stroke:var(--ink);stroke-width:1.4;fill:none}
+.dia .ln-c{stroke:var(--cust);stroke-width:1.8;fill:none}
+.dia .ln-a{stroke:var(--adm);stroke-width:1.8;fill:none}
+.dia .ln-b{stroke:var(--bad);stroke-width:1.6;fill:none;stroke-dasharray:5 4}
+.dia .ln-d{stroke:var(--ink);stroke-width:1.3;fill:none;stroke-dasharray:5 4}
+.dia .life{stroke:var(--line);stroke-width:1.3;stroke-dasharray:3 4}
+.dia .tc{fill:var(--cust)} .dia .ta{fill:var(--adm)} .dia .tb{fill:var(--bad)} .dia .tok{fill:var(--ok)}
+.dia .dash{fill:none;stroke:var(--edge);stroke-width:1.2;stroke-dasharray:5 4}
+.dia .end-ok{fill:var(--surface);stroke:var(--ok);stroke-width:2.2}
+.dia .end-bad{fill:var(--surface);stroke:var(--bad);stroke-width:2.2}
+.dia .ah{fill:var(--ink)} .dia .ah-c{fill:var(--cust)} .dia .ah-a{fill:var(--adm)} .dia .ah-b{fill:var(--bad)}
+
+/* tables */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th{font:500 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1.5px solid var(--ink)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td code,.code{font:400 12.5px var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:3px;white-space:nowrap}
+
+/* wireframes */
+.strip{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 14px;align-items:flex-start}
+.scr{flex:none;display:grid;gap:10px;width:212px}
+.scr figcaption{font-size:12.5px}
+.scr figcaption b{display:block;color:var(--ink);font:700 13px var(--font-display);font-stretch:112%;margin-bottom:2px}
+.scr figcaption .code{font-size:11px}
+.hop{flex:none;align-self:center;font:500 18px var(--font-mono);color:var(--edge);margin-top:-60px}
+.phone{height:452px;border:1.5px solid var(--ink);border-radius:24px;padding:16px 12px 12px;background:var(--surface);display:flex;flex-direction:column;gap:8px;overflow:hidden;position:relative;
+  box-shadow:0 8px 20px -12px rgba(18,32,43,.45)}
+.phone::before{content:"";width:44px;height:4px;border-radius:2px;background:var(--line);align-self:center;margin-top:-8px;margin-bottom:2px;flex:none}
+.p-title{font:800 15px var(--font-display);font-stretch:112%}
+.p-sm{font-size:10.5px;color:var(--muted);line-height:1.35}
+.f{border:1px solid var(--edge);border-radius:5px;height:28px;padding:0 8px;font-size:10.5px;color:var(--muted);display:flex;align-items:center;flex:none}
+.wb{height:30px;border-radius:6px;background:var(--cust);color:var(--on-cust);font:600 11.5px var(--font-body);display:grid;place-items:center;flex:none}
+.wb.ghost{background:transparent;color:var(--cust);border:1px solid var(--cust)}
+.wb.dis{background:var(--surface-2);color:var(--muted)}
+.wb.adm{background:var(--adm);color:var(--on-adm)}
+.wb.sm{height:24px;padding:0 10px;font-size:10.5px;display:inline-grid}
+.blk{background:var(--surface-2);border-radius:5px;flex:none}
+.chips{display:flex;gap:5px;flex:none;flex-wrap:nowrap;overflow:hidden}
+.chip{font-size:10px;padding:3px 8px;border-radius:99px;border:1px solid var(--edge);color:var(--muted);white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}
+.pc{display:grid;gap:4px;font-size:10.5px}
+.pc .blk{height:66px;position:relative}
+.pc b{font-weight:600;line-height:1.2}
+.pr{font:500 10.5px var(--font-mono)} .pr s{color:var(--muted);margin-left:4px}
+.oos{position:absolute;left:4px;top:4px;font-size:9px;background:var(--ink);color:var(--surface);padding:1px 5px;border-radius:3px}
+.media{height:118px;position:relative;display:grid;place-items:center}
+.play{width:0;height:0;border-left:16px solid var(--muted);border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:4px}
+.dots{display:flex;gap:4px;justify-content:center;flex:none}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)} .dots i.on{background:var(--cust)}
+.thumbs{display:flex;gap:5px;flex:none}
+.thumbs .blk{width:34px;height:26px;position:relative;display:grid;place-items:center}
+.thumbs .blk.sel{outline:2px solid var(--cust);outline-offset:1px}
+.thumbs .play{border-left-width:8px;border-top-width:5px;border-bottom-width:5px;margin-left:2px}
+.ft{display:grid;font-size:10.5px;flex:none}
+.ft div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dotted var(--edge)}
+.ft span:first-child{color:var(--muted)} .ft span:last-child{font-weight:600;text-align:right}
+.h{font:500 9.5px var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted);flex:none}
+.pill{display:inline-block;font:500 10px var(--font-mono);padding:2px 7px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--ok)} .pill.bad{color:var(--bad)} .pill.c{color:var(--cust)} .pill.a{color:var(--adm)}
+.row{display:flex;gap:8px;align-items:center;flex:none;font-size:10.5px}
+.row .blk{width:38px;height:38px;flex:none}
+.row .g{flex:1;display:grid;gap:2px;line-height:1.25}
+.stepper{display:inline-flex;border:1px solid var(--edge);border-radius:5px;font:500 10.5px var(--font-mono);flex:none}
+.stepper span{padding:2px 7px} .stepper span:nth-child(2){border-inline:1px solid var(--edge)}
+.tot{display:flex;justify-content:space-between;font-size:11px;flex:none}
+.tot.b{font-weight:700;font-size:12.5px;border-top:1px solid var(--ink);padding-top:6px}
+.tl{display:grid;gap:0;flex:none}
+.tl div{display:grid;grid-template-columns:14px 1fr;gap:8px;font-size:10.5px;padding-bottom:9px;position:relative}
+.tl div::before{content:"";position:absolute;left:6px;top:12px;bottom:-2px;width:1px;background:var(--edge)}
+.tl div:last-child::before{display:none}
+.tl i{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--edge);background:var(--surface);margin-top:1px}
+.tl .d i{background:var(--ok);border-color:var(--ok)} .tl .n i{border-color:var(--cust);box-shadow:0 0 0 3px var(--cust-tint);background:var(--cust)}
+.tl small{display:block;color:var(--muted);font:400 9.5px var(--font-mono)}
+.trk{border:1px dashed var(--edge);border-radius:4px;padding:7px 8px;display:grid;gap:2px;flex:none}
+.trk b{font:500 12px var(--font-mono);letter-spacing:.04em}
+.note{font-size:12.5px;color:var(--muted);max-width:75ch}
+.note b{color:var(--ink)}
+
+.wins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.wins .span2{grid-column:1/-1}
+.win{border:1px solid var(--edge);border-radius:8px;overflow:hidden;background:var(--surface);display:grid;align-content:start}
+.win-bar{background:var(--surface-2);padding:7px 10px;display:flex;gap:5px;align-items:center;border-bottom:1px solid var(--line)}
+.win-bar i{width:8px;height:8px;border-radius:50%;background:var(--edge);opacity:.6}
+.win-bar .code{margin-left:10px;font-size:10.5px;background:var(--surface);color:var(--muted)}
+.win-body{padding:14px;display:grid;gap:10px;font-size:12px;align-content:start}
+.win-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.win-head b{font:800 15px var(--font-display);font-stretch:112%}
+.win table{min-width:0;font-size:11.5px}
+.win th{font-size:9.5px;padding:6px 8px} .win td{padding:6px 8px;vertical-align:middle}
+.win .f{height:30px;font-size:11px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.stack{display:grid;gap:8px;align-content:start}
+.frow{display:grid;grid-template-columns:14px 1fr 1.3fr 14px;gap:6px;align-items:center;font-size:11px}
+.frow .f{height:26px}
+.frow .gr{color:var(--edge);font-size:12px;line-height:1}
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mt{aspect-ratio:1;background:var(--surface-2);border-radius:5px;position:relative;display:grid;place-items:center}
+.mt .tag{position:absolute;left:4px;bottom:4px;font:500 9px var(--font-mono);background:var(--ink);color:var(--surface);padding:1px 4px;border-radius:3px}
+.mt .star{position:absolute;right:4px;top:3px;font-size:11px;color:var(--adm)}
+.mt.up{background:transparent;border:1.5px dashed var(--edge);font-size:10px;color:var(--muted);text-align:center;padding:4px}
+.mt .play{border-left-width:12px;border-top-width:8px;border-bottom-width:8px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tabs span{font-size:11.5px;padding:6px 10px;color:var(--muted)}
+.tabs .on{color:var(--adm);border-bottom:2px solid var(--adm);font-weight:600}
+.acts{border:1px solid var(--adm);background:var(--adm-tint);border-radius:6px;padding:12px;display:grid;gap:8px}
+
+/* data */
+.dm{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:24px 28px}
+.dm section{padding:0;border:0;display:block}
+.dm h3{font-size:13px;font-family:var(--font-mono);font-stretch:100%;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding-bottom:6px;border-bottom:1.5px solid var(--ink);margin-bottom:8px}
+.dm ul{list-style:none;padding:0;margin:0;display:grid;gap:9px;font-size:13px}
+.dm li b{font:500 13px var(--font-mono)} .dm li span{display:block;color:var(--muted);font-size:12px}
+
+/* plan */
+.bars{display:grid;gap:6px}
+.bar{display:grid;grid-template-columns:minmax(0,230px) 1fr 120px;gap:14px;align-items:center;font-size:13px}
+.bar .lab b{font:500 11px var(--font-mono);color:var(--muted);margin-right:6px}
+.track{height:14px;background:var(--surface-2);border-radius:3px;position:relative;overflow:hidden}
+.fill{position:absolute;inset:0 auto 0 0;background:var(--edge)}
+.fill.c{background:var(--cust)} .fill.a{background:var(--adm)}
+.fill .done{position:absolute;inset:0 auto 0 0;background:var(--ok)}
+.bar .num{font:400 12px var(--font-mono);text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.bar .num b{color:var(--ink);font-weight:500}
+.order{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;counter-reset:s;list-style:none;padding:0;margin:0}
+.order li{counter-increment:s;padding:12px 14px;border-top:3px solid var(--ink);display:grid;gap:4px;align-content:start;position:relative}
+.order li::before{content:"Step " counter(s);font:500 10px var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.order li.par{border-top-color:var(--cust)}
+.order li b{font:800 15px var(--font-display);font-stretch:112%}
+.order li span{font-size:12.5px;color:var(--muted)}
+.order li .code{justify-self:start}
+details.ep{border-bottom:1px solid var(--line)}
+details.ep summary{cursor:pointer;padding:12px 4px;display:flex;gap:12px;align-items:baseline;list-style:none}
+details.ep summary::-webkit-details-marker{display:none}
+details.ep summary::before{content:"+";font:500 14px var(--font-mono);color:var(--muted);width:14px}
+details.ep[open] summary::before{content:"−"}
+details.ep summary b{font:800 16px var(--font-display);font-stretch:112%}
+details.ep summary .code{font-size:11px}
+details.ep summary em{margin-left:auto;font:400 12px var(--font-mono);color:var(--muted);font-style:normal;white-space:nowrap}
+details.ep .tbl{padding:0 0 14px 26px}
+.done-tag{color:var(--ok);font:500 11px var(--font-mono)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:28px}
+.cols ul{margin:8px 0 0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+.cols h3{margin-bottom:2px}
+footer{padding-block:34px 60px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+
+@media (max-width:820px){
+  .wins{grid-template-columns:minmax(0,1fr)}
+  .two{grid-template-columns:1fr}
+  .bar{grid-template-columns:1fr 100px;gap:4px 12px}
+  .bar .track{grid-column:1/-1;order:3}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+<nav class="nav" aria-label="Sections"><div class="nav-in">
+  <span class="brand">SalesCart</span>
+  <a href="#architecture">Architecture</a><a href="#flows">Flows</a><a href="#screens">Wireframes</a><a href="#data">Data</a><a href="#plan">Plan</a>
+</div></nav>
+
+<header class="top">
+  <div class="eyebrow">Sprint 1 · whole application · blueprint</div>
+  <h1>SalesCart Blueprint</h1>
+  <p class="lead">One place to see how the shop fits together: who talks to what, how an order travels from the phone to the dispatch desk, what each screen holds, and the work in the sprint.</p>
+  <div class="waybill" role="list" aria-label="Sprint at a glance">
+    <div role="listitem"><span>Services</span><b>8</b></div>
+    <div role="listitem"><span>Epics</span><b>10</b></div>
+    <div role="listitem"><span>Stories</span><b>53</b></div>
+    <div role="listitem"><span>Points</span><b>191</b></div>
+    <div role="listitem"><span>Done</span><b>5 / 53</b></div>
+  </div>
+  <div class="legend" aria-label="Colour key">
+    <span><i class="k-cust"></i>Customer (mobile app)</span>
+    <span><i class="k-adm"></i>Admin (web dashboard)</span>
+    <span><i class="k-sys"></i>System / service</span>
+  </div>
+</header>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="sub"><div class="eyebrow">System</div><h2>Architecture</h2>
+  <p class="lead">Both apps talk to one door, the API gateway. It checks the login token and the role, then passes the request to the right service. Services do not open to the public.</p></div>
+
+  <figure>
+  <div class="scroll">
+  <svg class="dia" viewBox="0 0 1040 520" role="img" aria-label="Mobile app and admin web call the API gateway on port 3001; the gateway calls six services; orders calls cart and inventory, cart calls products and inventory; all persist to PostgreSQL.">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah-c" d="M0 0L10 5L0 10z"/></marker>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah-a" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+    <text class="m" x="20" y="14">CLIENTS</text><text class="m" x="270" y="14">ENTRY</text><text class="m" x="500" y="14">SERVICES · each owns its data</text>
+
+    <rect class="box-c" x="20" y="60" width="172" height="76" rx="6"/>
+    <text class="t" x="34" y="86">Mobile app</text><text x="34" y="105">Expo · React Native</text><text class="m" x="34" y="123">customers</text>
+    <rect class="box-a" x="20" y="250" width="172" height="76" rx="6"/>
+    <text class="t" x="34" y="276">Admin web</text><text x="34" y="295">React · Vite :5173</text><text class="m" x="34" y="313">admins</text>
+
+    <rect class="gw" x="270" y="24" width="172" height="402" rx="6"/>
+    <text class="t" x="286" y="52">api-gateway</text><text class="m" x="286" y="68">:3001</text>
+    <text x="286" y="110">Verify JWT</text><text x="286" y="132">Enforce role</text><text x="286" y="154">CORS + rate limit</text>
+    <text x="286" y="176">Route /api/*</text><text x="286" y="198">Build product detail</text>
+    <text class="m" x="286" y="214">product + features</text><text class="m" x="286" y="228">+ media + live stock</text>
+    <text class="m" x="286" y="404">adds x-internal-key</text>
+
+    <line class="ln-c" x1="192" y1="98" x2="270" y2="98" marker-end="url(#a2)"/>
+    <text class="tc m" x="198" y="88">HTTPS+JWT</text>
+    <line class="ln-a" x1="192" y1="288" x2="270" y2="288" marker-end="url(#a3)"/>
+    <text class="ta m" x="198" y="278">HTTPS+JWT</text>
+
+    <path class="ln" d="M442 225H472M472 50V400"/>
+    <g>
+      <line class="ln" x1="472" y1="50" x2="500" y2="50" marker-end="url(#a1)"/>
+      <line class="ln" x1="472" y1="120" x2="500" y2="120" marker-end="url(#a1)"/>
+      <line class="ln" x1="472" y1="190" x2="500" y2="190" marker-end="url(#a1)"/>
+      <line class="ln" x1="472" y1="260" x2="500" y2="260" marker-end="url(#a1)"/>
+      <line class="ln" x1="472" y1="330" x2="500" y2="330" marker-end="url(#a1)"/>
+      <line class="ln" x1="472" y1="400" x2="500" y2="400" marker-end="url(#a1)"/>
+    </g>
+
+    <rect class="box" x="500" y="24" width="200" height="52" rx="5"/><text class="t" x="514" y="46">users</text><text class="m" x="514" y="63">:3006 · schema users</text>
+    <rect class="box" x="500" y="94" width="200" height="52" rx="5"/><text class="t" x="514" y="116">product-image</text><text class="m" x="514" y="133">:3005 · files on disk /media</text>
+    <rect class="box" x="500" y="164" width="200" height="52" rx="5"/><text class="t" x="514" y="186">products</text><text class="m" x="514" y="203">:3002 · schema catalog</text>
+    <rect class="box" x="500" y="234" width="200" height="52" rx="5"/><text class="t" x="514" y="256">cart</text><text class="m" x="514" y="273">:3004 · schema cart</text>
+    <rect class="box" x="500" y="304" width="200" height="52" rx="5"/><text class="t" x="514" y="326">inventory</text><text class="m" x="514" y="343">:3003 · schema inventory</text>
+    <rect class="box" x="500" y="374" width="200" height="52" rx="5"/><text class="t" x="514" y="396">orders  (new)</text><text class="m" x="514" y="413">:3007 · schema orders</text>
+
+    <!-- service to service -->
+    <path class="ln" d="M700 246H728V204H700" marker-end="url(#a1)"/><text class="m" x="736" y="229">prices</text>
+    <path class="ln" d="M700 274H728V316H700" marker-end="url(#a1)"/><text class="m" x="736" y="299">stock cap</text>
+    <path class="ln" d="M700 386H728V344H700" marker-end="url(#a1)"/><text class="m" x="736" y="369">reserve / release</text>
+    <path class="ln" d="M700 414H830V262H700" marker-end="url(#a1)"/><text class="m" x="838" y="330">read cart,</text><text class="m" x="838" y="344">then clear it</text>
+
+    <rect class="dash" x="500" y="452" width="200" height="50" rx="5"/>
+    <text class="t" x="514" y="473">PostgreSQL 16 · :5432</text><text class="m" x="514" y="490">one schema per service</text>
+    <text class="m" x="730" y="482">Redis :6379 (optional cache)</text>
+    <text class="m" x="20" y="482">Downstream services reject any call without the internal key.</text>
+  </svg>
+  </div>
+  <figcaption>Clients only reach the gateway. The four inner arrows are the only service-to-service calls: cart reads prices and stock, orders reserves stock and reads then clears the cart.</figcaption>
+  </figure>
+
+  <div class="sub"><h3>Decisions</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Area</th><th>Choice</th><th>Why</th></tr></thead>
+    <tbody>
+    <tr><td>Backend</td><td>NestJS services in the existing monorepo</td><td>Already in place</td></tr>
+    <tr><td>Data</td><td>PostgreSQL 16 + TypeORM, one schema per service</td><td>Isolation without a database server per service</td></tr>
+    <tr><td>Login</td><td>JWT (1 h), roles <code>CUSTOMER</code> / <code>ADMIN</code>, bcrypt passwords</td><td>Stateless; works for phone and browser</td></tr>
+    <tr><td>Service calls</td><td>HTTP + <code>x-internal-key</code></td><td>Keeps services off the public network</td></tr>
+    <tr><td>Media</td><td>product-image stores files, DB stores URLs</td><td>Images and video without a cloud dependency</td></tr>
+    <tr><td>Shared code</td><td><code>libs/common</code>: validation, error filter, guards, paging</td><td>One copy of cross-cutting code for 7 services</td></tr>
+    <tr><td>Payment</td><td>Cash on delivery only</td><td>Online payment is out of scope this sprint</td></tr>
+    </tbody></table></div></div>
+
+  <div class="sub"><h3>Public API through the gateway <span class="code">/api</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Area</th><th>Who</th><th>Endpoints</th></tr></thead>
+    <tbody>
+    <tr><td>Auth</td><td><span class="pill c">customer</span> <span class="pill a">admin</span></td><td><code>POST /auth/register</code> <code>POST /auth/login</code> <code>GET|PATCH /me</code> <code>/me/addresses</code></td></tr>
+    <tr><td>Catalog</td><td>public</td><td><code>GET /products?search&amp;category&amp;page</code> <code>GET /products/:id</code> <code>GET /categories</code></td></tr>
+    <tr><td>Cart</td><td><span class="pill c">customer</span></td><td><code>GET /cart</code> <code>POST /cart/items</code> <code>PATCH|DELETE /cart/items/:productId</code> <code>DELETE /cart</code></td></tr>
+    <tr><td>Orders</td><td><span class="pill c">customer</span></td><td><code>POST /orders</code> <code>GET /orders</code> <code>GET /orders/:id</code> <code>POST /orders/:id/cancel</code></td></tr>
+    <tr><td>Catalog admin</td><td><span class="pill a">admin</span></td><td><code>POST|PATCH|DELETE /admin/products</code> <code>PUT /admin/products/:id/features</code> <code>POST /admin/products/:id/media</code></td></tr>
+    <tr><td>Stock admin</td><td><span class="pill a">admin</span></td><td><code>GET|PATCH /admin/inventory</code> <code>POST /admin/inventory/:productId/restock</code></td></tr>
+    <tr><td>Order admin</td><td><span class="pill a">admin</span></td><td><code>GET /admin/orders?status</code> <code>PATCH /admin/orders/:id/status</code> <code>POST /admin/orders/:id/dispatch</code></td></tr>
+    </tbody></table></div></div>
+</section>
+
+<!-- FLOWS -->
+<section id="flows">
+  <div class="sub"><div class="eyebrow">Behaviour</div><h2>Flows</h2>
+  <p class="lead">Three views of the same shop: the journey each person takes, what happens inside when an order is placed, and the states an order can be in.</p></div>
+
+  <figure>
+  <div class="scroll">
+  <svg class="dia" viewBox="0 0 1040 300" role="img" aria-label="Two swimlanes. Customer: register, log in, browse, product detail, add to cart, place order, track order. Admin: log in, create product, features and media, set stock, watch orders, confirm order, dispatch with tracking. Three handoffs link the lanes.">
+    <defs>
+      <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+    <text class="m tc" x="20" y="22">CUSTOMER · mobile app</text>
+    <text class="m ta" x="20" y="182">ADMIN · web dashboard</text>
+    <g>
+      <rect class="box-c" x="20"  y="34" width="120" height="66" rx="5"/><text class="t" x="32" y="60">Register</text><text class="m" x="32" y="80">E1-1 · E7-2</text>
+      <rect class="box-c" x="160" y="34" width="120" height="66" rx="5"/><text class="t" x="172" y="60">Log in</text><text class="m" x="172" y="80">E1-2 · E7-2</text>
+      <rect class="box-c" x="300" y="34" width="120" height="66" rx="5"/><text class="t" x="312" y="60">Browse</text><text class="m" x="312" y="80">E2-1 · E7-3</text>
+      <rect class="box-c" x="440" y="34" width="120" height="66" rx="5"/><text class="t" x="452" y="60">Product detail</text><text class="m" x="452" y="80">E2-5 · E7-4</text>
+      <rect class="box-c" x="580" y="34" width="120" height="66" rx="5"/><text class="t" x="592" y="60">Add to cart</text><text class="m" x="592" y="80">E4-2 · E7-5</text>
+      <rect class="box-c" x="720" y="34" width="120" height="66" rx="5"/><text class="t" x="732" y="60">Place order</text><text class="m" x="732" y="80">E5-2 · E7-6</text>
+      <rect class="box-c" x="860" y="34" width="120" height="66" rx="5"/><text class="t" x="872" y="60">Track order</text><text class="m" x="872" y="80">E5-3 · E7-7</text>
+    </g>
+    <g>
+      <line class="ln" x1="140" y1="67" x2="160" y2="67" marker-end="url(#b1)"/><line class="ln" x1="280" y1="67" x2="300" y2="67" marker-end="url(#b1)"/>
+      <line class="ln" x1="420" y1="67" x2="440" y2="67" marker-end="url(#b1)"/><line class="ln" x1="560" y1="67" x2="580" y2="67" marker-end="url(#b1)"/>
+      <line class="ln" x1="700" y1="67" x2="720" y2="67" marker-end="url(#b1)"/><line class="ln" x1="840" y1="67" x2="860" y2="67" marker-end="url(#b1)"/>
+    </g>
+    <g>
+      <rect class="box-a" x="20"  y="194" width="120" height="66" rx="5"/><text class="t" x="32" y="220">Log in</text><text class="m" x="32" y="240">E8-1</text>
+      <rect class="box-a" x="160" y="194" width="120" height="66" rx="5"/><text class="t" x="172" y="220">Create product</text><text class="m" x="172" y="240">E2-6 · E8-2</text>
+      <rect class="box-a" x="300" y="194" width="120" height="66" rx="5"/><text class="t" x="312" y="220">Features + media</text><text class="m" x="312" y="240">E8-3 · E8-4</text>
+      <rect class="box-a" x="440" y="194" width="120" height="66" rx="5"/><text class="t" x="452" y="220">Set stock</text><text class="m" x="452" y="240">E3-2 · E8-5</text>
+      <rect class="box-a" x="580" y="194" width="120" height="66" rx="5"/><text class="t" x="592" y="220">Watch orders</text><text class="m" x="592" y="240">E5-5 · E8-6</text>
+      <rect class="box-a" x="720" y="194" width="120" height="66" rx="5"/><text class="t" x="732" y="220">Confirm order</text><text class="m" x="732" y="240">E5-6 · E8-7</text>
+      <rect class="box-a" x="860" y="194" width="120" height="66" rx="5"/><text class="t" x="872" y="220">Dispatch</text><text class="m" x="872" y="240">carrier + tracking no.</text>
+    </g>
+    <g>
+      <line class="ln" x1="140" y1="227" x2="160" y2="227" marker-end="url(#b1)"/><line class="ln" x1="280" y1="227" x2="300" y2="227" marker-end="url(#b1)"/>
+      <line class="ln" x1="420" y1="227" x2="440" y2="227" marker-end="url(#b1)"/><line class="ln" x1="560" y1="227" x2="580" y2="227" marker-end="url(#b1)"/>
+      <line class="ln" x1="700" y1="227" x2="720" y2="227" marker-end="url(#b1)"/><line class="ln" x1="840" y1="227" x2="860" y2="227" marker-end="url(#b1)"/>
+    </g>
+    <!-- handoffs -->
+    <line class="ln-d" x1="360" y1="194" x2="360" y2="100" marker-end="url(#b1)"/><text class="m" x="368" y="152">listed in catalog</text>
+    <line class="ln-d" x1="780" y1="100" x2="780" y2="194" marker-end="url(#b1)"/><text class="m" x="772" y="152" text-anchor="end">order arrives</text>
+    <line class="ln-d" x1="920" y1="194" x2="920" y2="100" marker-end="url(#b1)"/><text class="m" x="928" y="152">tracking shown</text>
+    <text class="m" x="20" y="288">Dashed arrows are handoffs between the two people. Codes are the sprint stories that build each step.</text>
+  </svg>
+  </div>
+  <figcaption>The two lanes meet in three places: a product the admin creates appears in the customer's catalog; an order the customer places lands in the admin's list; the tracking number the admin enters shows up on the customer's order.</figcaption>
+  </figure>
+
+  <figure>
+  <div class="scroll">
+  <svg class="dia" viewBox="0 0 940 520" role="img" aria-label="Placing an order: the app posts to the gateway, which forwards to orders. Orders reads the cart, reserves stock in one transaction, saves the order, clears the cart and returns the order id. If saving fails, orders releases the reserved stock.">
+    <defs>
+      <marker id="c1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+      <marker id="c2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah-c" d="M0 0L10 5L0 10z"/></marker>
+      <marker id="c3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah-b" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+    <rect class="box-c" x="30" y="16" width="120" height="38" rx="5"/><text class="t" x="90" y="40" text-anchor="middle">Mobile app</text>
+    <rect class="box-s" x="210" y="16" width="120" height="38" rx="5"/><text class="t" x="270" y="40" text-anchor="middle">Gateway</text>
+    <rect class="box-s" x="410" y="16" width="120" height="38" rx="5"/><text class="t" x="470" y="40" text-anchor="middle">Orders</text>
+    <rect class="box-s" x="600" y="16" width="120" height="38" rx="5"/><text class="t" x="660" y="40" text-anchor="middle">Cart</text>
+    <rect class="box-s" x="790" y="16" width="120" height="38" rx="5"/><text class="t" x="850" y="40" text-anchor="middle">Inventory</text>
+    <line class="life" x1="90" y1="54" x2="90" y2="510"/><line class="life" x1="270" y1="54" x2="270" y2="510"/><line class="life" x1="470" y1="54" x2="470" y2="510"/><line class="life" x1="660" y1="54" x2="660" y2="510"/><line class="life" x1="850" y1="54" x2="850" y2="510"/>
+
+    <line class="ln-c" x1="90" y1="96" x2="270" y2="96" marker-end="url(#c2)"/><text class="tc" x="100" y="88">1 · POST /orders { addressId }</text>
+    <line class="ln" x1="270" y1="140" x2="470" y2="140" marker-end="url(#c1)"/><text x="280" y="132">2 · forward + user id</text>
+    <line class="ln" x1="470" y1="184" x2="660" y2="184" marker-end="url(#c1)"/><text x="480" y="176">3 · get this user's cart</text>
+    <line class="ln-d" x1="660" y1="228" x2="470" y2="228" marker-end="url(#c1)"/><text x="480" y="220">4 · items with live prices</text>
+    <line class="ln" x1="470" y1="272" x2="850" y2="272" marker-end="url(#c1)"/><text x="560" y="264">5 · reserve every line (one transaction, row lock)</text>
+    <line class="ln-d" x1="850" y1="316" x2="470" y2="316" marker-end="url(#c1)"/><text x="560" y="308">6 · ok  —  or 409 “insufficient stock”</text>
+    <path class="ln" d="M470 350H430V372H470" marker-end="url(#c1)"/><text x="424" y="365" text-anchor="end">7 · save order + PLACED</text>
+    <line class="ln" x1="470" y1="410" x2="660" y2="410" marker-end="url(#c1)"/><text x="480" y="402">8 · clear cart</text>
+    <line class="ln-d" x1="470" y1="450" x2="90" y2="450" marker-end="url(#c2)"/><text class="tc" x="110" y="442">9 · 201 Created + order id</text>
+    <line class="ln-b" x1="470" y1="490" x2="850" y2="490" marker-end="url(#c3)"/><text class="tb" x="560" y="482">if 7 fails: release the reserved stock</text>
+  </svg>
+  </div>
+  <figcaption>Stock is reserved before the order is saved, so nothing is sold twice. There is no shared transaction across services, so a failed save triggers the release call (red) instead.</figcaption>
+  </figure>
+
+  <figure>
+  <div class="scroll">
+  <svg class="dia" viewBox="0 0 960 300" role="img" aria-label="Order states: Placed to Confirmed to Dispatched to Delivered by admin actions; Placed or Confirmed can go to Cancelled by customer or admin, which releases stock.">
+    <defs>
+      <marker id="d1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah" d="M0 0L10 5L0 10z"/></marker>
+      <marker id="d2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path class="ah-a" d="M0 0L10 5L0 10z"/></marker>
+    </defs>
+    <rect class="box" x="30"  y="60" width="150" height="48" rx="5"/><text class="t" x="105" y="89" text-anchor="middle">PLACED</text>
+    <rect class="box" x="270" y="60" width="150" height="48" rx="5"/><text class="t" x="345" y="89" text-anchor="middle">CONFIRMED</text>
+    <rect class="box" x="510" y="60" width="150" height="48" rx="5"/><text class="t" x="585" y="89" text-anchor="middle">DISPATCHED</text>
+    <rect class="end-ok" x="750" y="60" width="170" height="48" rx="5"/><text class="t" x="835" y="89" text-anchor="middle">DELIVERED</text>
+    <line class="ln-a" x1="180" y1="84" x2="270" y2="84" marker-end="url(#d2)"/><text class="ta" x="225" y="76" text-anchor="middle">confirm</text>
+    <line class="ln-a" x1="420" y1="84" x2="510" y2="84" marker-end="url(#d2)"/><text class="ta" x="465" y="76" text-anchor="middle">dispatch</text><text class="m" x="465" y="128" text-anchor="middle">needs carrier + tracking no.</text>
+    <line class="ln-a" x1="660" y1="84" x2="750" y2="84" marker-end="url(#d2)"/><text class="ta" x="705" y="76" text-anchor="middle">deliver</text><text class="m" x="465" y="146" text-anchor="middle">amber arrows are admin actions</text>
+    <path class="ln" d="M105 108V234H150" marker-end="url(#d1)"/>
+    <path class="ln" d="M345 108V234H300" marker-end="url(#d1)"/>
+    <rect class="end-bad" x="150" y="210" width="150" height="48" rx="5"/><text class="t" x="225" y="239" text-anchor="middle">CANCELLED</text>
+    <text class="tc" x="113" y="180">customer or admin</text><text class="m" x="353" y="180">stock is released</text>
+    <text x="520" y="228">Every arrow writes one <tspan class="code">order_events</tspan> row: who, when, note.</text>
+    <text class="m" x="520" y="248">Any other jump is refused with 409 Conflict.</text>
+  </svg>
+  </div>
+  <figcaption>Cancelling is only allowed before dispatch. After that the customer sees the tracking number and can no longer cancel.</figcaption>
+  </figure>
+</section>
+
+<!-- WIREFRAMES -->
+<section id="screens">
+  <div class="sub"><div class="eyebrow">Interface</div><h2>Wireframes</h2>
+  <p class="lead">Grey shapes are placeholders for real content; the text shows what each screen must hold. The code under each name is the story that builds it.</p></div>
+
+  <div class="sub"><h3><span class="pill c">Customer</span> Mobile app</h3>
+  <div class="strip" tabindex="0" aria-label="Mobile screens, scroll sideways">
+
+    <figure class="scr"><div class="phone">
+      <div class="p-title" style="margin-top:14px">Welcome back</div>
+      <div class="p-sm">Log in to see your cart and orders.</div>
+      <div class="h" style="margin-top:6px">Email</div><div class="f">asha@example.com</div>
+      <div class="h">Password</div><div class="f">••••••••</div>
+      <div class="wb" style="margin-top:6px">Log in</div>
+      <div class="p-sm" style="text-align:center;color:var(--cust)">New here? Create an account</div>
+      <div class="blk" style="height:1px;margin-top:8px"></div>
+      <div class="p-sm">Register asks for name, email, phone and a password of 8+ characters. Wrong details show one generic error.</div>
+    </div><figcaption><b>Login · Register</b><span class="code">E7-2</span></figcaption></figure>
+    <span class="hop" aria-hidden="true">→</span>
+
+    <figure class="scr"><div class="phone">
+      <div class="f" style="margin-top:8px">Search products</div>
+      <div class="chips"><span class="chip on">All</span><span class="chip">Electronics</span><span class="chip">Furniture</span><span class="chip">Home</span></div>
+      <div class="grid2">
+        <div class="pc"><div class="blk"></div><b>UltraBook Pro 15</b><span class="pr">$1,350<s>$1,500</s></span></div>
+        <div class="pc"><div class="blk"></div><b>ErgoChair Executive</b><span class="pr">$399<s>$450</s></span></div>
+        <div class="pc"><div class="blk"><span class="oos">Out of stock</span></div><b>NoiseCancel 700</b><span class="pr">$299</span></div>
+        <div class="pc"><div class="blk"></div><b>SmartWatch 9</b><span class="pr">$450<s>$500</s></span></div>
+        <div class="pc"><div class="blk"></div><b>Gourmet Coffee Maker</b><span class="pr">$210<s>$250</s></span></div>
+        <div class="pc"><div class="blk"></div><b>Load more…</b></div>
+      </div>
+    </div><figcaption><b>Product list</b>Search, category filter, endless scroll.<br><span class="code">E7-3</span></figcaption></figure>
+    <span class="hop" aria-hidden="true">→</span>
+
+    <figure class="scr"><div class="phone">
+      <div class="blk media" style="margin-top:8px"><div class="play"></div></div>
+      <div class="dots"><i></i><i class="on"></i><i></i><i></i></div>
+      <div class="thumbs"><div class="blk"></div><div class="blk sel"><div class="play"></div></div><div class="blk"></div><div class="blk"></div></div>
+      <div class="p-title" style="font-size:13px">UltraBook Pro 15</div>
+      <div class="row" style="justify-content:space-between"><span class="pr" style="font-size:12px">$1,350<s>$1,500</s></span><span class="pill ok">In stock · 18</span></div>
+      <div class="h">Features</div>
+      <div class="ft"><div><span>Display</span><span>15" 4K OLED</span></div><div><span>Brand</span><span>TechNova</span></div><div><span>Material</span><span>Aluminium</span></div><div><span>Year</span><span>2024</span></div></div>
+      <div class="wb" style="margin-top:auto">Add to cart</div>
+    </div><figcaption><b>Product detail</b>Images and video swipe together; the feature list sits directly under the media.<br><span class="code">E7-4</span></figcaption></figure>
+    <span class="hop" aria-hidden="true">→</span>
+
+    <figure class="scr"><div class="phone">
+      <div class="p-title" style="margin-top:12px">Your cart</div>
+      <div class="row"><div class="blk"></div><div class="g"><b>UltraBook Pro 15</b><span class="pr">$1,350</span><span class="stepper"><span>−</span><span>1</span><span>+</span></span></div></div>
+      <div class="row"><div class="blk"></div><div class="g"><b>ErgoChair Executive</b><span class="pr">$399</span><span class="stepper"><span>−</span><span>2</span><span>+</span></span></div></div>
+      <div class="row"><div class="blk"></div><div class="g"><b>NoiseCancel 700</b><span class="pill bad" style="justify-self:start">Out of stock</span><span class="p-sm">Remove to continue</span></div></div>
+      <div style="margin-top:auto;display:grid;gap:6px">
+        <div class="tot"><span>Subtotal</span><span class="mono">$1,349.00</span></div>
+        <div class="tot"><span>Delivery</span><span class="mono">Free</span></div>
+        <div class="tot b"><span>Total</span><span class="mono">$1,349.00</span></div>
+        <div class="wb dis">Checkout</div>
+      </div>
+    </div><figcaption><b>Cart</b>Prices are read live; unavailable items block checkout.<br><span class="code">E7-5</span></figcaption></figure>
+    <span class="hop" aria-hidden="true">→</span>
+
+    <figure class="scr"><div class="phone">
+      <div class="p-title" style="margin-top:12px">Checkout</div>
+      <div class="h">Deliver to</div>
+      <div class="trk" style="border-style:solid"><b style="font:600 11.5px var(--font-body)">Asha Rao · Home</b><span class="p-sm">12 Lake Road, Pune, MH 411001</span><span class="p-sm" style="color:var(--cust)">Change · Add new</span></div>
+      <div class="h">Payment</div>
+      <div class="f" style="color:var(--ink)">◉ Cash on delivery</div>
+      <div class="h">Summary</div>
+      <div class="tot"><span>2 items</span><span class="mono">$1,349.00</span></div>
+      <div class="tot b"><span>Total</span><span class="mono">$1,349.00</span></div>
+      <div class="wb" style="margin-top:auto">Place order</div>
+      <div class="p-sm" style="text-align:center">If stock ran out you'll see which item.</div>
+    </div><figcaption><b>Checkout</b>Address, payment, review. Success shows the order number.<br><span class="code">E7-6</span></figcaption></figure>
+    <span class="hop" aria-hidden="true">→</span>
+
+    <figure class="scr"><div class="phone">
+      <div class="row" style="margin-top:12px;justify-content:space-between"><span class="p-title" style="font-size:14px">Order #1042</span><span class="pill c">Dispatched</span></div>
+      <div class="tl">
+        <div class="d"><i></i><span>Placed<small>21 Sep · 10:42</small></span></div>
+        <div class="d"><i></i><span>Confirmed<small>21 Sep · 11:05</small></span></div>
+        <div class="n"><i></i><span><b>Dispatched</b><small>22 Sep · 09:10</small></span></div>
+        <div><i></i><span style="color:var(--muted)">Delivered</span></div>
+      </div>
+      <div class="trk"><span class="h">Tracking</span><b>BD48217730IN</b><span class="p-sm">Carrier: BlueDart</span></div>
+      <div class="row"><div class="blk" style="width:28px;height:28px"></div><div class="g"><b>UltraBook Pro 15</b><span class="p-sm">Qty 1 · $1,350</span></div></div>
+      <div class="wb dis" style="margin-top:auto">Cancel order</div>
+      <div class="p-sm" style="text-align:center">Available until dispatch.</div>
+    </div><figcaption><b>Order tracking</b>Timeline from the order events, plus carrier and tracking number.<br><span class="code">E7-7</span></figcaption></figure>
+  </div>
+  <p class="note">The mobile app also has <b>My orders</b> (list) and <b>Profile</b> (edit name and phone, log out): <span class="code">E7-7</span> <span class="code">E7-8</span>.</p></div>
+
+  <div class="sub"><h3><span class="pill a">Admin</span> Web dashboard</h3>
+  <div class="wins">
+
+    <div class="win"><div class="win-bar"><i></i><i></i><i></i><span class="code">/products</span></div>
+      <div class="win-body">
+        <div class="win-head"><b>Products</b><span class="wb adm sm">+ New product</span></div>
+        <div class="f">Search by name or brand</div>
+        <table><thead><tr><th>Name</th><th>Category</th><th class="n">Price</th><th>Status</th></tr></thead><tbody>
+          <tr><td>UltraBook Pro 15</td><td>Electronics</td><td class="n">$1,350</td><td><span class="pill ok">Active</span></td></tr>
+          <tr><td>ErgoChair Executive</td><td>Furniture</td><td class="n">$399</td><td><span class="pill ok">Active</span></td></tr>
+          <tr><td>Gourmet Coffee Maker</td><td>Home</td><td class="n">$210</td><td><span class="pill">Hidden</span></td></tr>
+        </tbody></table>
+        <div class="note"><span class="code">E2-6</span> <span class="code">E8-2</span> Create, edit, hide.</div>
+      </div></div>
+
+    <div class="win"><div class="win-bar"><i></i><i></i><i></i><span class="code">/inventory</span></div>
+      <div class="win-body">
+        <div class="win-head"><b>Inventory</b><span class="pill a">2 low stock</span></div>
+        <table><thead><tr><th>Product</th><th class="n">In stock</th><th class="n">Reserved</th><th>Restock</th></tr></thead><tbody>
+          <tr><td>UltraBook Pro 15</td><td class="n">18</td><td class="n">2</td><td><span class="f" style="display:inline-flex;width:60px;height:24px">+ 10</span></td></tr>
+          <tr><td>ErgoChair Executive</td><td class="n">4 <span class="pill bad">low</span></td><td class="n">0</td><td><span class="f" style="display:inline-flex;width:60px;height:24px">+ 25</span></td></tr>
+          <tr><td>NoiseCancel 700</td><td class="n">0 <span class="pill bad">out</span></td><td class="n">0</td><td><span class="f" style="display:inline-flex;width:60px;height:24px">+ 30</span></td></tr>
+        </tbody></table>
+        <div class="note"><span class="code">E3-2</span> <span class="code">E8-5</span> Every change is logged as a stock movement.</div>
+      </div></div>
+
+    <div class="win span2"><div class="win-bar"><i></i><i></i><i></i><span class="code">/products/101/edit</span></div>
+      <div class="win-body">
+        <div class="win-head"><b>Edit · UltraBook Pro 15</b><span class="wb adm sm">Save changes</span></div>
+        <div class="two">
+          <div class="stack">
+            <div class="h">Details</div>
+            <div class="f">UltraBook Pro 15</div>
+            <div class="f" style="height:54px;align-items:flex-start;padding-top:8px">Professional laptop with 4K OLED display.</div>
+            <div class="two" style="gap:8px"><div class="f">Category · Electronics</div><div class="f">Brand · TechNova</div></div>
+            <div class="two" style="gap:8px"><div class="f">Original price · 1500</div><div class="f">Discount price · 1350</div></div>
+            <div class="note">Discount price cannot exceed the original price.</div>
+          </div>
+          <div class="stack">
+            <div class="h">Features (label · value)</div>
+            <div class="frow"><span class="gr">⋮⋮</span><div class="f">Display</div><div class="f">15" 4K OLED</div><span class="gr">×</span></div>
+            <div class="frow"><span class="gr">⋮⋮</span><div class="f">Battery</div><div class="f">up to 14 h</div><span class="gr">×</span></div>
+            <div class="frow"><span class="gr">⋮⋮</span><div class="f">Material</div><div class="f">Aluminium</div><span class="gr">×</span></div>
+            <span class="wb ghost sm" style="justify-self:start;color:var(--adm);border-color:var(--adm)">+ Add feature</span>
+            <div class="h" style="margin-top:6px">Media (drag to reorder)</div>
+            <div class="mgrid">
+              <div class="mt"><span class="star">★</span><span class="tag">image</span></div>
+              <div class="mt"><span class="tag">image</span></div>
+              <div class="mt"><div class="play"></div><span class="tag">video</span></div>
+              <div class="mt up">Drop files or browse</div>
+            </div>
+            <div class="note">JPG, PNG, WebP up to 5 MB · MP4 up to 50 MB. ★ marks the list thumbnail.</div>
+          </div>
+        </div>
+        <div class="note"><span class="code">E8-3</span> <span class="code">E8-4</span> <span class="code">E2-2</span> <span class="code">E2-3</span> <span class="code">E2-4</span></div>
+      </div></div>
+
+    <div class="win"><div class="win-bar"><i></i><i></i><i></i><span class="code">/orders</span></div>
+      <div class="win-body">
+        <div class="win-head"><b>Orders</b></div>
+        <div class="tabs"><span>All</span><span class="on">Placed · 3</span><span>Confirmed</span><span>Dispatched</span><span>Delivered</span></div>
+        <table><thead><tr><th>Order</th><th>Customer</th><th class="n">Total</th><th>Status</th></tr></thead><tbody>
+          <tr><td class="mono">#1044</td><td>Ravi K.</td><td class="n">$399</td><td><span class="pill c">Placed</span></td></tr>
+          <tr><td class="mono">#1043</td><td>Meera S.</td><td class="n">$749</td><td><span class="pill c">Placed</span></td></tr>
+          <tr><td class="mono">#1042</td><td>Asha R.</td><td class="n">$1,349</td><td><span class="pill c">Placed</span></td></tr>
+        </tbody></table>
+        <div class="note"><span class="code">E5-5</span> <span class="code">E8-6</span> Filter by status and date.</div>
+      </div></div>
+
+    <div class="win"><div class="win-bar"><i></i><i></i><i></i><span class="code">/orders/1042</span></div>
+      <div class="win-body">
+        <div class="win-head"><b>Order #1042</b><span class="pill c">Confirmed</span></div>
+        <div class="two" style="gap:12px">
+          <div class="stack">
+            <div class="h">Items</div>
+            <div class="tot"><span>UltraBook Pro 15 × 1</span><span class="mono">$1,350</span></div>
+            <div class="tot"><span>ErgoChair Executive × 2</span><span class="mono">$798</span></div>
+            <div class="h" style="margin-top:4px">Ship to</div>
+            <div class="p-sm">Asha Rao · 12 Lake Road, Pune, MH 411001</div>
+          </div>
+          <div class="acts">
+            <div class="h" style="color:var(--adm)">Dispatch</div>
+            <div class="f">Carrier · BlueDart</div>
+            <div class="f">Tracking number</div>
+            <span class="wb adm">Dispatch order</span>
+            <span class="p-sm">Only actions valid for this status appear here.</span>
+          </div>
+        </div>
+        <div class="note"><span class="code">E5-6</span> <span class="code">E8-7</span> Confirm, dispatch, mark delivered, cancel.</div>
+      </div></div>
+  </div></div>
+</section>
+
+<!-- DATA -->
+<section id="data">
+  <div class="sub"><div class="eyebrow">Storage</div><h2>Data</h2>
+  <p class="lead">Each service owns its tables. Orders keep a snapshot of names, prices and the address, so later edits never rewrite history.</p></div>
+  <div class="dm">
+    <section><h3>users</h3><ul>
+      <li><b>users</b><span>id, email (unique), passwordHash, name, phone, role, createdAt</span></li>
+      <li><b>addresses</b><span>userId, line1, line2, city, state, postalCode, country, isDefault</span></li></ul></section>
+    <section><h3>catalog</h3><ul>
+      <li><b>categories</b><span>name, parentId</span></li>
+      <li><b>products</b><span>name, description, categoryId, brand, originalPrice, discountPrice, isActive</span></li>
+      <li><b>product_features</b><span>productId, label, value, sortOrder</span></li>
+      <li><b>product_media</b><span>productId, type IMAGE | VIDEO, url, sortOrder, isPrimary</span></li></ul></section>
+    <section><h3>inventory</h3><ul>
+      <li><b>inventory</b><span>productId, stock, reserved, updatedAt</span></li>
+      <li><b>inventory_movements</b><span>productId, delta, reason RESTOCK | ORDER | CANCEL | ADJUST, refId</span></li></ul></section>
+    <section><h3>cart</h3><ul>
+      <li><b>carts</b><span>userId</span></li>
+      <li><b>cart_items</b><span>userId, productId, quantity · one row per user + product</span></li></ul></section>
+    <section><h3>orders</h3><ul>
+      <li><b>orders</b><span>userId, status, totalAmount, shippingAddress (snapshot), paymentMethod</span></li>
+      <li><b>order_items</b><span>orderId, productId, name + price snapshot, quantity</span></li>
+      <li><b>order_events</b><span>orderId, status, note, actorId, createdAt</span></li>
+      <li><b>shipments</b><span>orderId, carrier, trackingNumber, dispatchedAt, deliveredAt</span></li></ul></section>
+  </div>
+</section>
+
+<!-- PLAN -->
+<section id="plan">
+  <div class="sub"><div class="eyebrow">Delivery</div><h2>Sprint plan</h2>
+  <p class="lead"><b>Goal:</b> customers register, browse, order and track on the phone; admins manage products, stock and orders from the web. Bars are story points, coloured by who the epic serves. Green is work already done.</p></div>
+
+  <div class="bars" role="list" aria-label="Story points per epic">
+    <div class="bar" role="listitem"><div class="lab"><b>E0</b>Foundation</div><div class="track"><div class="fill " style="width:50.0%"><span class="done" style="width:100.0%"></span></div></div><div class="num"><b>17 pts</b> · 5 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E1</b>Identity</div><div class="track"><div class="fill " style="width:35.3%"></div></div><div class="num"><b>12 pts</b> · 5 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E2</b>Catalog</div><div class="track"><div class="fill " style="width:70.6%"></div></div><div class="num"><b>24 pts</b> · 6 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E3</b>Inventory</div><div class="track"><div class="fill " style="width:38.2%"></div></div><div class="num"><b>13 pts</b> · 4 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E4</b>Cart</div><div class="track"><div class="fill " style="width:23.5%"></div></div><div class="num"><b>8 pts</b> · 3 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E5</b>Orders and tracking</div><div class="track"><div class="fill " style="width:76.5%"></div></div><div class="num"><b>26 pts</b> · 7 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E6</b>API gateway</div><div class="track"><div class="fill " style="width:38.2%"></div></div><div class="num"><b>13 pts</b> · 4 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E7</b>Mobile app</div><div class="track"><div class="fill c" style="width:100.0%"></div></div><div class="num"><b>34 pts</b> · 8 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E8</b>Admin web</div><div class="track"><div class="fill a" style="width:85.3%"></div></div><div class="num"><b>29 pts</b> · 7 stories</div></div>
+    <div class="bar" role="listitem"><div class="lab"><b>E9</b>Quality and delivery</div><div class="track"><div class="fill " style="width:44.1%"></div></div><div class="num"><b>15 pts</b> · 4 stories</div></div>
+  </div>
+
+  <div class="sub"><h3>Order of work</h3>
+  <ol class="order">
+    <li><b>Foundation</b><span>Database, shared library, seed data</span><span class="code">E0 · 17 pts</span></li>
+    <li><b>Identity</b><span>Register, login, roles, addresses</span><span class="code">E1 · 12 pts</span></li>
+    <li><b>Catalog + stock</b><span>Products, features, media, inventory</span><span class="code">E2 E3 · 37 pts</span></li>
+    <li><b>Cart + orders</b><span>Place, cancel, dispatch, track</span><span class="code">E4 E5 · 34 pts</span></li>
+    <li><b>Gateway</b><span>One door, auth, product detail</span><span class="code">E6 · 13 pts</span></li>
+    <li class="par"><b>Mobile ‖ Admin</b><span>Built in parallel once the gateway is up</span><span class="code">E7 E8 · 63 pts</span></li>
+    <li><b>Quality</b><span>Tests, end-to-end run, security, README</span><span class="code">E9 · 15 pts</span></li>
+  </ol>
+  <p class="note">Unit tests are written with each backend story, not saved for the end.</p></div>
+
+  <div class="sub"><h3>Every story</h3>
+    <details class="ep"><summary><b>Foundation</b><span class="code">E0</span><em>17 pts · 5/5 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E0-1</span></td><td><span class="done-tag">✓ done</span> Fix inventory, cart and product bugs from code review</td><td class="n">3</td><td>Stock DTO correct, route order fixed, cart URLs and mutations work, verified by running services</td></tr><tr><td><span class="code">E0-2</span></td><td><span class="done-tag">✓ done</span> Docker Compose runs Postgres and Redis; <code></code></code> per service</td><td class="n">2</td><td><code></code></code> brings up DB; every service reads config from env</td></tr><tr><td><span class="code">E0-3</span></td><td><span class="done-tag">✓ done</span> <code></code></code>: validation pipe, exception filter, JWT guard, <code></code></code> guard, internal-key guard, pagination helper</td><td class="n">5</td><td>Imported by all services; unit tests for guards</td></tr><tr><td><span class="code">E0-4</span></td><td><span class="done-tag">✓ done</span> Replace in-memory data with TypeORM entities and migrations in products, inventory, cart</td><td class="n">5</td><td>Data survives restart; seed script loads sample catalog</td></tr><tr><td><span class="code">E0-5</span></td><td><span class="done-tag">✓ done</span> Root scripts: <code></code></code>, <code></code></code>, <code></code></code> include new services</td><td class="n">2</td><td>One command starts everything on Windows</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Identity</b><span class="code">E1</span><em>12 pts · 0/5 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E1-1</span></td><td>As a visitor I can register with email, password, name</td><td class="n">3</td><td>Duplicate email returns 409; password is bcrypt-hashed; never returned in responses; password min 8 chars</td></tr><tr><td><span class="code">E1-2</span></td><td>As a user I can log in and receive a JWT</td><td class="n">3</td><td>Wrong credentials return 401 with a generic message; token carries <code></code></code> and <code></code></code></td></tr><tr><td><span class="code">E1-3</span></td><td>As a user I can view and update my profile</td><td class="n">2</td><td>Requires JWT; cannot change own role</td></tr><tr><td><span class="code">E1-4</span></td><td>As a customer I can manage delivery addresses</td><td class="n">3</td><td>CRUD; exactly one default; only my own addresses visible</td></tr><tr><td><span class="code">E1-5</span></td><td>Seed an admin account from env vars</td><td class="n">1</td><td>Admin exists after first boot; role cannot be set via public registration</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Catalog</b><span class="code">E2</span><em>24 pts · 0/6 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E2-1</span></td><td>Products and categories persisted with pagination, search and category filter</td><td class="n">5</td><td><code></code></code> returns page metadata; inactive products hidden from customers</td></tr><tr><td><span class="code">E2-2</span></td><td>Product features (label/value list) stored and returned</td><td class="n">3</td><td>Ordered by <code></code></code>; admin can replace the whole list</td></tr><tr><td><span class="code">E2-3</span></td><td>Product media (images and videos) with ordering and a primary image</td><td class="n">3</td><td>Detail returns media array with type and URL</td></tr><tr><td><span class="code">E2-4</span></td><td>Media upload endpoint</td><td class="n">5</td><td>Accepts jpg, png, webp, mp4 (size limits: 5 MB image, 50 MB video); rejects other types; returns a served URL</td></tr><tr><td><span class="code">E2-5</span></td><td>Product detail aggregates product, features, media and live stock at the gateway</td><td class="n">3</td><td>One call returns everything the detail screen needs; degrades gracefully if inventory is down</td></tr><tr><td><span class="code">E2-6</span></td><td>Admin product CRUD (create, update, soft-delete)</td><td class="n">5</td><td>Admin-only; validation on price (discount ≤ original); creating a product also creates its inventory row</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Inventory</b><span class="code">E3</span><em>13 pts · 0/4 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E3-1</span></td><td>Inventory persisted with movement history</td><td class="n">3</td><td>Every change writes an <code></code></code> row</td></tr><tr><td><span class="code">E3-2</span></td><td>Admin can restock and adjust stock</td><td class="n">3</td><td>Admin-only; negative stock rejected</td></tr><tr><td><span class="code">E3-3</span></td><td>Atomic reserve and release for orders</td><td class="n">5</td><td>Runs in one DB transaction; multi-item all-or-nothing; concurrent orders cannot oversell (row lock); tested with parallel requests</td></tr><tr><td><span class="code">E3-4</span></td><td>Admin low-stock list</td><td class="n">2</td><td>Filter by threshold</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Cart</b><span class="code">E4</span><em>8 pts · 0/3 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E4-1</span></td><td>Cart is tied to the authenticated user (no <code></code></code> in URL or body)</td><td class="n">3</td><td>Users cannot read or modify another user's cart</td></tr><tr><td><span class="code">E4-2</span></td><td>Add, update quantity, remove, clear</td><td class="n">3</td><td>Adding an existing product merges quantity; quantity 0 removes; quantity capped by available stock</td></tr><tr><td><span class="code">E4-3</span></td><td>Cart view shows current price, subtotal, availability</td><td class="n">2</td><td>Prices always read live from products; unavailable items flagged</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Orders and tracking</b><span class="code">E5</span><em>26 pts · 0/7 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E5-1</span></td><td>Orders service scaffold, entities, migrations</td><td class="n">3</td><td>Runs on port 3007 with Swagger</td></tr><tr><td><span class="code">E5-2</span></td><td>Place order from cart with chosen address</td><td class="n">8</td><td>Validates stock, reserves it, snapshots price and address, clears cart; a failure at any step rolls back stock; response contains order id</td></tr><tr><td><span class="code">E5-3</span></td><td>Customer order list and detail with status timeline and tracking</td><td class="n">3</td><td>Only own orders; timeline from <code></code></code></td></tr><tr><td><span class="code">E5-4</span></td><td>Customer can cancel while PLACED or CONFIRMED</td><td class="n">3</td><td>Stock released; illegal transitions return 409</td></tr><tr><td><span class="code">E5-5</span></td><td>Admin order list with status filter and search</td><td class="n">3</td><td>Pagination; filter by status and date</td></tr><tr><td><span class="code">E5-6</span></td><td>Admin confirms, dispatches (carrier + tracking number) and marks delivered</td><td class="n">5</td><td>State machine enforced; each transition recorded with actor and time</td></tr><tr><td><span class="code">E5-7</span></td><td>Payment: Cash on Delivery only in this sprint (payment gateway is out of scope)</td><td class="n">1</td><td><code></code></code>; the field is ready for a future provider</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>API gateway</b><span class="code">E6</span><em>13 pts · 0/4 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E6-1</span></td><td>Route <code></code></code> to services, forward user identity headers</td><td class="n">5</td><td>Downstream services reject calls without the internal key</td></tr><tr><td><span class="code">E6-2</span></td><td>JWT verification and role enforcement (<code></code></code> routes)</td><td class="n">3</td><td>401 unauthenticated, 403 wrong role</td></tr><tr><td><span class="code">E6-3</span></td><td>CORS for web and mobile, request logging, rate limit on login/register</td><td class="n">3</td><td>Throttling returns 429</td></tr><tr><td><span class="code">E6-4</span></td><td>Unified Swagger docs at <code></code></code></td><td class="n">2</td><td>All public endpoints documented</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Mobile app</b><span class="code">E7</span><em>34 pts · 0/8 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E7-1</span></td><td>Project setup, navigation, API client with token storage (SecureStore)</td><td class="n">3</td><td>Token attached to requests; 401 sends the user to login</td></tr><tr><td><span class="code">E7-2</span></td><td>Register and login screens with validation</td><td class="n">3</td><td>Field errors shown; session persists across restarts</td></tr><tr><td><span class="code">E7-3</span></td><td>Product list: search, category filter, infinite scroll</td><td class="n">5</td><td>Shows primary image, price, discount, out-of-stock badge</td></tr><tr><td><span class="code">E7-4</span></td><td>Product detail: media carousel (images and video playback), price and offers, feature table, stock status</td><td class="n">8</td><td>Swipe between images and videos; features listed beside the media; add-to-cart button disabled when out of stock</td></tr><tr><td><span class="code">E7-5</span></td><td>Cart screen: change quantity, remove, totals</td><td class="n">3</td><td>Reflects backend state</td></tr><tr><td><span class="code">E7-6</span></td><td>Checkout: select or add address, review, place order</td><td class="n">5</td><td>Success screen with order id; error message if stock ran out</td></tr><tr><td><span class="code">E7-7</span></td><td>My orders list and detail with status timeline and tracking number</td><td class="n">5</td><td>Cancel button when allowed</td></tr><tr><td><span class="code">E7-8</span></td><td>Profile and logout</td><td class="n">2</td><td>Edit name and phone</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Admin web</b><span class="code">E8</span><em>29 pts · 0/7 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E8-1</span></td><td>Setup, admin login, route guard</td><td class="n">3</td><td>Non-admin users are rejected</td></tr><tr><td><span class="code">E8-2</span></td><td>Product list and create/edit form (details, price, category)</td><td class="n">5</td><td>Validation matches the backend</td></tr><tr><td><span class="code">E8-3</span></td><td>Feature editor (add, reorder, remove rows)</td><td class="n">3</td><td>Saved via one call</td></tr><tr><td><span class="code">E8-4</span></td><td>Media manager: upload images and videos, set primary, reorder, delete</td><td class="n">5</td><td>Previews shown; upload progress and errors</td></tr><tr><td><span class="code">E8-5</span></td><td>Inventory page: view stock, restock, adjust, low-stock highlight</td><td class="n">3</td><td>Shows movement history per product</td></tr><tr><td><span class="code">E8-6</span></td><td>Orders page: filter by status, order detail</td><td class="n">5</td><td>Shows items, address, timeline</td></tr><tr><td><span class="code">E8-7</span></td><td>Order actions: confirm, dispatch (carrier + tracking number), mark delivered, cancel</td><td class="n">5</td><td>Only valid actions shown for the current status</td></tr></tbody></table></div></details>
+    <details class="ep"><summary><b>Quality and delivery</b><span class="code">E9</span><em>15 pts · 0/4 done</em></summary><div class="tbl"><table><thead><tr><th>ID</th><th>Story</th><th class="n">Pts</th><th>Acceptance criteria</th></tr></thead><tbody><tr><td><span class="code">E9-1</span></td><td>Unit tests for services with business rules (auth, stock reservation, order state machine)</td><td class="n">5</td><td>Rules above covered, including failure paths</td></tr><tr><td><span class="code">E9-2</span></td><td>E2E happy path against running stack: register → browse → cart → order → admin dispatch → customer sees tracking</td><td class="n">5</td><td>Scripted, runs in one command</td></tr><tr><td><span class="code">E9-3</span></td><td>Security pass: password handling, role checks on every admin route, no secrets in git, input validation</td><td class="n">3</td><td><code></code></code> findings resolved</td></tr><tr><td><span class="code">E9-4</span></td><td>README with setup, ports, env vars, seed data, demo accounts</td><td class="n">2</td><td>A new developer can run the stack from the README</td></tr></tbody></table></div></details>
+  </div>
+
+  <div class="cols">
+    <div><h3>Definition of done</h3><ul>
+      <li>Acceptance criteria met and shown by running the service or app.</li>
+      <li>Unit tests for business rules pass; the service builds with no type errors.</li>
+      <li>Endpoints validated and listed in Swagger.</li>
+      <li>Admin routes protected by role checks.</li>
+      <li>No secrets committed; settings come from environment.</li>
+      <li>Docs updated where behaviour changed.</li></ul></div>
+    <div><h3>Not in this sprint</h3><ul>
+      <li>Online payment (Stripe, Razorpay)</li>
+      <li>Email, SMS and push notifications</li>
+      <li>Reviews, wishlists, coupons, card offers at checkout</li>
+      <li>Multiple warehouses, refunds</li>
+      <li>App-store release</li></ul></div>
+    <div><h3>Risks</h3><ul>
+      <li><b>191 points is a lot for one sprint.</b> Backend goes first so the apps never wait; every step stays shippable.</li>
+      <li><b>Overselling.</b> Row lock in the reserve step, proven with a parallel-request test.</li>
+      <li><b>No shared transaction across services.</b> Reserve first, save, and release on failure.</li>
+      <li><b>Large videos.</b> Size limits, and range requests so playback streams.</li></ul></div>
+  </div>
+</section>
+
+<footer>Generated from <span class="code">docs/sprint-1.md</span>. Story lists and points come straight from that file.</footer>
+</div>
