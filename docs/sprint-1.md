@@ -77,85 +77,85 @@
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E1-1 | [ ] As a visitor I can register with email, password, name | 3 | Duplicate email returns 409; password is bcrypt-hashed; never returned in responses; password min 8 chars |
-| E1-2 | [ ] As a user I can log in and receive a JWT | 3 | Wrong credentials return 401 with a generic message; token carries `sub` and `role` |
-| E1-3 | [ ] As a user I can view and update my profile | 2 | Requires JWT; cannot change own role |
-| E1-4 | [ ] As a customer I can manage delivery addresses | 3 | CRUD; exactly one default; only my own addresses visible |
-| E1-5 | [ ] Seed an admin account from env vars | 1 | Admin exists after first boot; role cannot be set via public registration |
+| E1-1 | [x] As a visitor I can register with email, password, name | 3 | Duplicate email returns 409; password is bcrypt-hashed; never returned in responses; password min 8 chars |
+| E1-2 | [x] As a user I can log in and receive a JWT | 3 | Wrong credentials return 401 with a generic message; token carries `sub` and `role` |
+| E1-3 | [x] As a user I can view and update my profile | 2 | Requires JWT; cannot change own role |
+| E1-4 | [x] As a customer I can manage delivery addresses | 3 | CRUD; exactly one default; only my own addresses visible |
+| E1-5 | [x] Seed an admin account from env vars | 1 | Admin exists after first boot; role cannot be set via public registration |
 
 ### EPIC 2 — Catalog: products, features, media
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E2-1 | [ ] Products and categories persisted with pagination, search and category filter | 5 | `GET /products` returns page metadata; inactive products hidden from customers |
-| E2-2 | [ ] Product features (label/value list) stored and returned | 3 | Ordered by `sortOrder`; admin can replace the whole list |
-| E2-3 | [ ] Product media (images and videos) with ordering and a primary image | 3 | Detail returns media array with type and URL |
-| E2-4 | [ ] Media upload endpoint | 5 | Accepts jpg, png, webp, mp4 (size limits: 5 MB image, 50 MB video); rejects other types; returns a served URL |
-| E2-5 | [ ] Product detail aggregates product, features, media and live stock at the gateway | 3 | One call returns everything the detail screen needs; degrades gracefully if inventory is down |
-| E2-6 | [ ] Admin product CRUD (create, update, soft-delete) | 5 | Admin-only; validation on price (discount ≤ original); creating a product also creates its inventory row |
+| E2-1 | [x] Products and categories persisted with pagination, search and category filter | 5 | `GET /products` returns page metadata; inactive products hidden from customers |
+| E2-2 | [x] Product features (label/value list) stored and returned | 3 | Ordered by `sortOrder`; admin can replace the whole list |
+| E2-3 | [x] Product media (images and videos) with ordering and a primary image | 3 | Detail returns media array with type and URL |
+| E2-4 | [x] Media upload endpoint | 5 | Accepts jpg, png, webp, mp4 (size limits: 5 MB image, 50 MB video); rejects other types; returns a served URL |
+| E2-5 | [x] Product detail aggregates product, features, media and live stock at the gateway | 3 | One call returns everything the detail screen needs; degrades gracefully if inventory is down |
+| E2-6 | [x] Admin product CRUD (create, update, soft-delete) | 5 | Admin-only; validation on price (discount ≤ original); creating a product also creates its inventory row |
 
 ### EPIC 3 — Inventory
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E3-1 | [ ] Inventory persisted with movement history | 3 | Every change writes an `inventory_movements` row |
-| E3-2 | [ ] Admin can restock and adjust stock | 3 | Admin-only; negative stock rejected |
-| E3-3 | [ ] Atomic reserve and release for orders | 5 | Runs in one DB transaction; multi-item all-or-nothing; concurrent orders cannot oversell (row lock); tested with parallel requests |
-| E3-4 | [ ] Admin low-stock list | 2 | Filter by threshold |
+| E3-1 | [x] Inventory persisted with movement history | 3 | Every change writes an `inventory_movements` row |
+| E3-2 | [x] Admin can restock and adjust stock | 3 | Admin-only; negative stock rejected |
+| E3-3 | [x] Atomic reserve and release for orders | 5 | Runs in one DB transaction; multi-item all-or-nothing; concurrent orders cannot oversell (row lock); tested with parallel requests |
+| E3-4 | [x] Admin low-stock list | 2 | Filter by threshold |
 
 ### EPIC 4 — Cart
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E4-1 | [ ] Cart is tied to the authenticated user (no `userId` in URL or body) | 3 | Users cannot read or modify another user's cart |
-| E4-2 | [ ] Add, update quantity, remove, clear | 3 | Adding an existing product merges quantity; quantity 0 removes; quantity capped by available stock |
-| E4-3 | [ ] Cart view shows current price, subtotal, availability | 2 | Prices always read live from products; unavailable items flagged |
+| E4-1 | [x] Cart is tied to the authenticated user (no `userId` in URL or body) | 3 | Users cannot read or modify another user's cart |
+| E4-2 | [x] Add, update quantity, remove, clear | 3 | Adding an existing product merges quantity; quantity 0 removes; quantity capped by available stock |
+| E4-3 | [x] Cart view shows current price, subtotal, availability | 2 | Prices always read live from products; unavailable items flagged |
 
 ### EPIC 5 — Orders and tracking
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E5-1 | [ ] Orders service scaffold, entities, migrations | 3 | Runs on port 3007 with Swagger |
-| E5-2 | [ ] Place order from cart with chosen address | 8 | Validates stock, reserves it, snapshots price and address, clears cart; a failure at any step rolls back stock; response contains order id |
-| E5-3 | [ ] Customer order list and detail with status timeline and tracking | 3 | Only own orders; timeline from `order_events` |
-| E5-4 | [ ] Customer can cancel while PLACED or CONFIRMED | 3 | Stock released; illegal transitions return 409 |
-| E5-5 | [ ] Admin order list with status filter and search | 3 | Pagination; filter by status and date |
-| E5-6 | [ ] Admin confirms, dispatches (carrier + tracking number) and marks delivered | 5 | State machine enforced; each transition recorded with actor and time |
-| E5-7 | [ ] Payment: Cash on Delivery only in this sprint (payment gateway is out of scope) | 1 | `paymentMethod = COD`; the field is ready for a future provider |
+| E5-1 | [x] Orders service scaffold, entities, migrations | 3 | Runs on port 3007 with Swagger |
+| E5-2 | [x] Place order from cart with chosen address | 8 | Validates stock, reserves it, snapshots price and address, clears cart; a failure at any step rolls back stock; response contains order id |
+| E5-3 | [x] Customer order list and detail with status timeline and tracking | 3 | Only own orders; timeline from `order_events` |
+| E5-4 | [x] Customer can cancel while PLACED or CONFIRMED | 3 | Stock released; illegal transitions return 409 |
+| E5-5 | [x] Admin order list with status filter and search | 3 | Pagination; filter by status and date |
+| E5-6 | [x] Admin confirms, dispatches (carrier + tracking number) and marks delivered | 5 | State machine enforced; each transition recorded with actor and time |
+| E5-7 | [x] Payment: Cash on Delivery only in this sprint (payment gateway is out of scope) | 1 | `paymentMethod = COD`; the field is ready for a future provider |
 
 ### EPIC 6 — API gateway
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E6-1 | [ ] Route `/api/*` to services, forward user identity headers | 5 | Downstream services reject calls without the internal key |
-| E6-2 | [ ] JWT verification and role enforcement (`ADMIN` routes) | 3 | 401 unauthenticated, 403 wrong role |
-| E6-3 | [ ] CORS for web and mobile, request logging, rate limit on login/register | 3 | Throttling returns 429 |
-| E6-4 | [ ] Unified Swagger docs at `/api/docs` | 2 | All public endpoints documented |
+| E6-1 | [x] Route `/api/*` to services, forward user identity headers | 5 | Downstream services reject calls without the internal key |
+| E6-2 | [x] JWT verification and role enforcement (`ADMIN` routes) | 3 | 401 unauthenticated, 403 wrong role |
+| E6-3 | [x] CORS for web and mobile, request logging, rate limit on login/register | 3 | Throttling returns 429 |
+| E6-4 | [x] Unified Swagger docs at `/api/docs` | 2 | All public endpoints documented |
 
 ### EPIC 7 — Mobile app (Expo, customer)
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E7-1 | [ ] Project setup, navigation, API client with token storage (SecureStore) | 3 | Token attached to requests; 401 sends the user to login |
-| E7-2 | [ ] Register and login screens with validation | 3 | Field errors shown; session persists across restarts |
-| E7-3 | [ ] Product list: search, category filter, infinite scroll | 5 | Shows primary image, price, discount, out-of-stock badge |
-| E7-4 | [ ] Product detail: media carousel (images and video playback), price and offers, feature table, stock status | 8 | Swipe between images and videos; features listed beside the media; add-to-cart button disabled when out of stock |
-| E7-5 | [ ] Cart screen: change quantity, remove, totals | 3 | Reflects backend state |
-| E7-6 | [ ] Checkout: select or add address, review, place order | 5 | Success screen with order id; error message if stock ran out |
-| E7-7 | [ ] My orders list and detail with status timeline and tracking number | 5 | Cancel button when allowed |
-| E7-8 | [ ] Profile and logout | 2 | Edit name and phone |
+| E7-1 | [x] Project setup, navigation, API client with token storage (SecureStore) | 3 | Token attached to requests; 401 sends the user to login |
+| E7-2 | [x] Register and login screens with validation | 3 | Field errors shown; session persists across restarts |
+| E7-3 | [x] Product list: search, category filter, infinite scroll | 5 | Shows primary image, price, discount, out-of-stock badge |
+| E7-4 | [x] Product detail: media carousel (images and video playback), price and offers, feature table, stock status | 8 | Swipe between images and videos; features listed beside the media; add-to-cart button disabled when out of stock |
+| E7-5 | [x] Cart screen: change quantity, remove, totals | 3 | Reflects backend state |
+| E7-6 | [x] Checkout: select or add address, review, place order | 5 | Success screen with order id; error message if stock ran out |
+| E7-7 | [x] My orders list and detail with status timeline and tracking number | 5 | Cancel button when allowed |
+| E7-8 | [x] Profile and logout | 2 | Edit name and phone |
 
 ### EPIC 8 — Admin web (React + Vite)
 
 | ID | Story | Pts | Acceptance criteria |
 |---|---|---|---|
-| E8-1 | [ ] Setup, admin login, route guard | 3 | Non-admin users are rejected |
-| E8-2 | [ ] Product list and create/edit form (details, price, category) | 5 | Validation matches the backend |
-| E8-3 | [ ] Feature editor (add, reorder, remove rows) | 3 | Saved via one call |
-| E8-4 | [ ] Media manager: upload images and videos, set primary, reorder, delete | 5 | Previews shown; upload progress and errors |
-| E8-5 | [ ] Inventory page: view stock, restock, adjust, low-stock highlight | 3 | Shows movement history per product |
-| E8-6 | [ ] Orders page: filter by status, order detail | 5 | Shows items, address, timeline |
-| E8-7 | [ ] Order actions: confirm, dispatch (carrier + tracking number), mark delivered, cancel | 5 | Only valid actions shown for the current status |
+| E8-1 | [x] Setup, admin login, route guard | 3 | Non-admin users are rejected |
+| E8-2 | [x] Product list and create/edit form (details, price, category) | 5 | Validation matches the backend |
+| E8-3 | [x] Feature editor (add, reorder, remove rows) | 3 | Saved via one call |
+| E8-4 | [x] Media manager: upload images and videos, set primary, reorder, delete | 5 | Previews shown; upload progress and errors |
+| E8-5 | [x] Inventory page: view stock, restock, adjust, low-stock highlight | 3 | Shows movement history per product |
+| E8-6 | [x] Orders page: filter by status, order detail | 5 | Shows items, address, timeline |
+| E8-7 | [x] Order actions: confirm, dispatch (carrier + tracking number), mark delivered, cancel | 5 | Only valid actions shown for the current status |
 
 ### EPIC 9 — Quality and delivery
 

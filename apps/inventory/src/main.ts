@@ -6,12 +6,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  applyCommonGlobals(app);
+  applyCommonGlobals(app, { strict: true });
 
   const config = new DocumentBuilder()
     .setTitle('Inventory API')
     .setDescription('Inventory service APIs')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

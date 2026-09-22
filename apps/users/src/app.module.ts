@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { UsersService } from './users/users.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module';
+import { dataSourceOptions } from './data-source';
 
 @Module({
-  providers: [ UsersService],
+  imports: [TypeOrmModule.forRoot(dataSourceOptions), UsersModule],
 })
 export class AppModule {}

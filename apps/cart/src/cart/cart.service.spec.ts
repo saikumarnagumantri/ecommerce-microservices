@@ -4,9 +4,10 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CartService } from './cart.service';
 import { CartItem } from './entities/cart-item.entity';
+import * as inventoryClient from './exteranl/inventory.client';
 
 jest.mock('./exteranl/products.client', () => ({ getProductsByIds: jest.fn().mockResolvedValue([]) }));
-jest.mock('./exteranl/inventory.client', () => ({ getInventoryByIds: jest.fn().mockResolvedValue([]) }));
+jest.mock('./exteranl/inventory.client');
 
 type MockRepo = Partial<Record<keyof Repository<CartItem>, jest.Mock>>;
 
@@ -22,6 +23,7 @@ describe('CartService', () => {
       remove: jest.fn(),
       delete: jest.fn(),
     };
+    (inventoryClient.getInventoryByIds as jest.Mock).mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [CartService, { provide: getRepositoryToken(CartItem), useValue: repo }],
@@ -34,54 +36,70 @@ describe('CartService', () => {
     expect(service).toBeDefined();
   });
 
-  it('getCart returns an empty item list without calling other services when the cart is empty', async () => {
+  it('getCart returns an empty, zero-total cart without calling other services when empty', async () => {
     repo.findBy!.mockResolvedValue([]);
-    await expect(service.getCart(123)).resolves.toEqual({ userId: 123, items: [] });
+    await expect(service.getCart(1)).resolves.toEqual({ userId: 1, items: [], total: 0 });
   });
 
-  describe('addProductToCart', () => {
-    it('rejects a non-positive quantity', async () => {
-      await expect(
-        service.addProductToCart({ userId: 1, productId: 101, quantity: 0 }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('merges into an existing row instead of creating a duplicate', async () => {
-      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 2 });
-      await service.addProductToCart({ userId: 1, productId: 101, quantity: 3 });
-      expect(repo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 1, quantity: 5 }),
-      );
-    });
-
+  describe('addItem', () => {
     it('creates a new row when none exists yet', async () => {
       repo.findOneBy!.mockResolvedValue(null);
-      await service.addProductToCart({ userId: 1, productId: 101, quantity: 2 });
-      expect(repo.save).toHaveBeenCalledWith({ userId: 1, productId: 101, quantity: 2 });
+      (inventoryClient.getInventoryByIds as jest.Mock).mockResolvedValue([{ productId: 101, stock: 50, isAvailable: true }]);
+
+      const result = await service.addItem(1, { productId: 101, quantity: 3 });
+
+      expect(result).toEqual({ quantity: 3, wasCapped: false });
+      expect(repo.save).toHaveBeenCalledWith({ userId: 1, productId: 101, quantity: 3 });
+    });
+
+    it('merges into an existing row', async () => {
+      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 2 });
+      (inventoryClient.getInventoryByIds as jest.Mock).mockResolvedValue([{ productId: 101, stock: 50, isAvailable: true }]);
+
+      const result = await service.addItem(1, { productId: 101, quantity: 3 });
+
+      expect(result.quantity).toBe(5);
+    });
+
+    it('caps the quantity at available stock', async () => {
+      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 8 });
+      (inventoryClient.getInventoryByIds as jest.Mock).mockResolvedValue([{ productId: 101, stock: 10, isAvailable: true }]);
+
+      const result = await service.addItem(1, { productId: 101, quantity: 5 }); // 8+5=13, but only 10 in stock
+
+      expect(result).toEqual({ quantity: 10, wasCapped: true });
+    });
+
+    it('does not cap when inventory cannot be reached (fails open)', async () => {
+      repo.findOneBy!.mockResolvedValue(null);
+      (inventoryClient.getInventoryByIds as jest.Mock).mockRejectedValue(new Error('down'));
+
+      const result = await service.addItem(1, { productId: 101, quantity: 100 });
+
+      expect(result).toEqual({ quantity: 100, wasCapped: false });
     });
   });
 
-  describe('updateQuantityByProduct', () => {
+  describe('setQuantity', () => {
     it('throws when the product is not in the cart', async () => {
       repo.findOneBy!.mockResolvedValue(null);
-      await expect(
-        service.updateQuantityByProduct(1, { userId: 1, productId: 101, quantity: 1 }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.setQuantity(1, 101, { quantity: 2 })).rejects.toThrow(BadRequestException);
     });
 
-    it('removes the row once quantity drops to zero or below', async () => {
-      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 2 });
-      await service.updateQuantityByProduct(1, { userId: 1, productId: 101, quantity: -2 });
+    it('removes the row when set to zero or below', async () => {
+      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 5 });
+      const result = await service.setQuantity(1, 101, { quantity: 0 });
       expect(repo.remove).toHaveBeenCalled();
-      expect(repo.save).not.toHaveBeenCalled();
+      expect(result).toEqual({ quantity: 0, wasCapped: false });
     });
 
-    it('saves the updated quantity otherwise', async () => {
-      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 2 });
-      await service.updateQuantityByProduct(1, { userId: 1, productId: 101, quantity: 1 });
-      expect(repo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ quantity: 3 }),
-      );
+    it('caps an absolute quantity at available stock', async () => {
+      repo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, productId: 101, quantity: 1 });
+      (inventoryClient.getInventoryByIds as jest.Mock).mockResolvedValue([{ productId: 101, stock: 4, isAvailable: true }]);
+
+      const result = await service.setQuantity(1, 101, { quantity: 20 });
+
+      expect(result).toEqual({ quantity: 4, wasCapped: true });
     });
   });
 });

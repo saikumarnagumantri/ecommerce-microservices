@@ -32,6 +32,7 @@ const TARGETS = [
   'apps/api-gateway',
   'apps/admin',
   'apps/product-image',
+  'apps/orders',
 ];
 
 const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';

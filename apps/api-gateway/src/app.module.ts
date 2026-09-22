@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ApiGatewayModule } from './api-gateway/api-gateway.module';
+import { GatewayModule } from './gateway/gateway.module';
 
 @Module({
-  imports: [ApiGatewayModule]
+  imports: [GatewayModule],
 })
 export class AppModule {}

@@ -1,6 +1,6 @@
 {
   "name": "@salescart/common",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Shared cross-cutting building blocks for all SalesCart services: validation, error shape, JWT/roles/internal-key guards, pagination.",
   "private": true,
   "main": "dist/index.js",
@@ -16,6 +16,7 @@
   "dependencies": {
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.2"
   },
   "peerDependencies": {

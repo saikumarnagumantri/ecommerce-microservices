@@ -1,12 +1,15 @@
 import { ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { ProductDTO } from './dto/product.dto';
+import { ProductDetailDto, PagedProductsDto } from './dto/product.dto';
+import { ProductQueryDto } from './dto/product-query.dto';
 import { ProductsService } from './products.service';
+import { Public } from '@salescart/common';
 import {
   BadRequestException,
   Controller,
   Get,
   Logger,
   Param,
+  ParseIntPipe,
   Query,
 } from '@nestjs/common';
 
@@ -15,30 +18,28 @@ import {
 export class ProductsController {
   constructor(private readonly productService: ProductsService) {}
   private readonly logger = new Logger(ProductsController.name);
+
+  @Public()
   @Get()
-  @ApiOkResponse({ type: ProductDTO, isArray: true })
-  getProducts(): Promise<ProductDTO[]> {
-    return this.productService.getProducts();
+  @ApiOkResponse({ type: PagedProductsDto })
+  getProducts(@Query() query: ProductQueryDto): Promise<PagedProductsDto> {
+    return this.productService.findAll(query);
   }
+
+  @Public()
   @Get('bulk-by-product/')
   @ApiQuery({ name: 'productIds', required: true, example: '101,102' })
-  @ApiOkResponse({ type: ProductDTO, isArray: true })
   getBulkInventory(@Query('productIds') productIds: string) {
     if (this.isProductIdValid(productIds)) {
       return this.productService.getProductsByIds(productIds);
     }
   }
 
+  @Public()
   @Get(':id')
-  @ApiOkResponse({ type: ProductDTO })
-  getProductById(@Param('id') id: number): Promise<ProductDTO> {
-    const productId = Number(id);
-
-    if (isNaN(productId)) {
-      this.logger.warn(`Invalid product id: ${id}`);
-      throw new BadRequestException(`Invalid product id: ${id}`);
-    }
-    return this.productService.getProductById(Number(productId));
+  @ApiOkResponse({ type: ProductDetailDto })
+  getProductById(@Param('id', ParseIntPipe) id: number): Promise<ProductDetailDto> {
+    return this.productService.findDetailById(id);
   }
 
   isProductIdValid(productId) {

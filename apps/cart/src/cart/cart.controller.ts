@@ -1,82 +1,48 @@
-import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Logger,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from '@salescart/common';
+import type { AuthenticatedUser } from '@salescart/common';
 import { CartService } from './cart.service';
-import { ApiOkResponse } from '@nestjs/swagger';
-import { CartAddRemoveDTO, CartDTO, CartResponseDto } from './dto/cart.dto';
-import {
-  INVALID_PRODUCT_ID,
-  INVALID_USER_ID,
-} from './constants/cart.constants';
+import { AddCartItemDto, CartResponseDto, SetCartItemQuantityDto } from './dto/cart.dto';
 
+/** Every route acts on the calling user's own cart — there is no userId in the URL or body (E4-1). */
+@ApiTags('cart')
+@ApiBearerAuth()
 @Controller('cart')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
-  private readonly logger = new Logger(CartController.name);
 
-  @Get(':userId')
+  @Get()
   @ApiOkResponse({ type: CartResponseDto })
-  async getCartByUserId(
-    @Param('userId') userId: number,
-  ): Promise<CartResponseDto> {
-    if (isNaN(userId)) {
-      this.logger.warn(`${INVALID_PRODUCT_ID} ${userId}`);
-      throw new BadRequestException(`${INVALID_PRODUCT_ID} ${userId}`);
-    }
-    return await this.cartService.getCart(userId);
+  getCart(@CurrentUser() user: AuthenticatedUser): Promise<CartResponseDto> {
+    return this.cartService.getCart(user.id);
   }
 
-  @Post()
-  @ApiOkResponse({ description: 'Product added to cart' })
-  addProductToCart(@Body() cartAdd: CartAddRemoveDTO): Promise<string> {
-    return this.cartService.addProductToCart(cartAdd);
+  @Post('items')
+  @ApiOkResponse({ description: 'Item added (merged into any existing quantity, capped by stock)' })
+  addItem(@CurrentUser() user: AuthenticatedUser, @Body() dto: AddCartItemDto) {
+    return this.cartService.addItem(user.id, dto);
   }
 
-  @Patch('updateQuantityByProduct/:userId')
-  @ApiOkResponse({ description: 'Product in cart Updated succesfully' })
-  updateQuantityByProduct(
-    @Param('userId') userId: number,
-    @Body() data: CartAddRemoveDTO,
+  @Patch('items/:productId')
+  @ApiOkResponse({ description: 'Quantity set (capped by stock; 0 or below removes the item)' })
+  setQuantity(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('productId', ParseIntPipe) productId: number,
+    @Body() dto: SetCartItemQuantityDto,
   ) {
-    if (isNaN(userId)) {
-      this.logger.warn(`${INVALID_USER_ID} ${userId}`);
-      throw new BadRequestException(`${INVALID_USER_ID} ${userId}`);
-    }
-    return this.cartService.updateQuantityByProduct(userId, data);
+    return this.cartService.setQuantity(user.id, productId, dto);
   }
 
-  @Delete('deleteCartByUserid/:userId')
-  @ApiOkResponse({ description: 'Cart Delete succesfully' })
-  deleteCartByUserid(@Param('userId') userId: number) {
-    if (isNaN(userId)) {
-      this.logger.warn(`${INVALID_PRODUCT_ID} ${userId}`);
-      throw new BadRequestException(`${INVALID_PRODUCT_ID} ${userId}`);
-    }
-    return this.cartService.deleteCartByUserid(userId);
+  @Delete('items/:productId')
+  @ApiOkResponse({ description: 'Item removed' })
+  removeItem(@CurrentUser() user: AuthenticatedUser, @Param('productId', ParseIntPipe) productId: number) {
+    return this.cartService.removeItem(user.id, productId);
   }
 
-  @Delete('deleteCartByproductId/:userId/:productId')
-  @ApiOkResponse({ description: 'Cart Delete succesfully' })
-  deleteCartByproductId(
-    @Param('userId') userId: number,
-    @Param('productId') productId: number,
-  ) {
-    if (isNaN(userId)) {
-      this.logger.warn(`${INVALID_USER_ID} ${userId}`);
-      throw new BadRequestException(`${INVALID_USER_ID} ${userId}`);
-    }
-    if (isNaN(productId)) {
-      this.logger.warn(`${INVALID_PRODUCT_ID} ${productId}`);
-      throw new BadRequestException(`${INVALID_PRODUCT_ID} ${productId}`);
-    }
-    return this.cartService.deleteCartByproductId(userId, productId);
+  @Delete()
+  @ApiOkResponse({ description: 'Cart cleared' })
+  clear(@CurrentUser() user: AuthenticatedUser) {
+    return this.cartService.clear(user.id);
   }
 }

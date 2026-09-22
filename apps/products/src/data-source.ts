@@ -1,6 +1,9 @@
 import 'dotenv/config';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { Product } from './products/entities/product.entity';
+import { ProductFeature } from './products/entities/product-feature.entity';
+import { ProductMedia } from './products/entities/product-media.entity';
+import { Category } from './categories/entities/category.entity';
 
 /**
  * Single source of truth for this service's DB connection: used by
@@ -19,7 +22,7 @@ export const dataSourceOptions: DataSourceOptions = {
   // migration has created it. Each entity names its own schema instead
   // (see Product's @Entity({ schema: 'products' })), and TypeORM's
   // migrations table lives in the default `public` schema.
-  entities: [Product],
+  entities: [Product, ProductFeature, ProductMedia, Category],
   migrations: [__dirname + '/migrations/*.{js,ts}'],
   synchronize: false,
   logging: process.env.DB_LOGGING === 'true',

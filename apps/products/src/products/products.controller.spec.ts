@@ -11,7 +11,7 @@ describe('ProductsController', () => {
       providers: [
         {
           provide: ProductsService,
-          useValue: { getProducts: jest.fn(), getProductById: jest.fn(), getProductsByIds: jest.fn() },
+          useValue: { findAll: jest.fn(), findDetailById: jest.fn(), getProductsByIds: jest.fn() },
         },
       ],
     }).compile();
