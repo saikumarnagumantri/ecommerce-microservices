@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { OrderStatus, PaymentMethod } from '../entities/order.entity';
 import type { ShippingAddressSnapshot } from '../entities/order.entity';
+import { OrderItemDispatchStatus } from '../entities/order-item.entity';
 
 export class OrderItemResponseDto {
   @ApiProperty({ example: 101 })
@@ -14,6 +15,9 @@ export class OrderItemResponseDto {
 
   @ApiProperty({ example: 1 })
   quantity!: number;
+
+  @ApiProperty({ enum: OrderItemDispatchStatus })
+  dispatchStatus!: OrderItemDispatchStatus;
 }
 
 export class OrderEventResponseDto {
@@ -39,6 +43,15 @@ export class ShipmentResponseDto {
 
   @ApiPropertyOptional({ nullable: true })
   deliveredAt!: Date | null;
+
+  @ApiProperty({ example: false })
+  isPartial!: boolean;
+
+  @ApiPropertyOptional({ nullable: true, example: 'OUT_OF_STOCK' })
+  reason!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  comment!: string | null;
 }
 
 export class OrderSummaryDto {
@@ -65,6 +78,9 @@ export class OrderSummaryDto {
 
   @ApiProperty()
   createdAt!: Date;
+
+  @ApiProperty({ example: false, description: "True when this order has an admin-triggered update the customer hasn't seen yet." })
+  hasUnseenUpdate!: boolean;
 }
 
 export class OrderDetailDto extends OrderSummaryDto {
