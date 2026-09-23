@@ -19,4 +19,14 @@ export class Shipment {
 
   @Column({ type: 'timestamptz', nullable: true })
   deliveredAt!: Date | null;
+
+  /** True when at least one of the order's items was held back from this dispatch. */
+  @Column({ type: 'boolean', default: false })
+  isPartial!: boolean;
+
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  reason!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  comment!: string | null;
 }
