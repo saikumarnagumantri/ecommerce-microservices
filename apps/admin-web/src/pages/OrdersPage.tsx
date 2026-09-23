@@ -11,6 +11,7 @@ const STATUS_TABS: Array<{ value: OrderStatus | 'ALL'; label: string }> = [
   { value: 'PLACED', label: 'Placed' },
   { value: 'CONFIRMED', label: 'Confirmed' },
   { value: 'DISPATCHED', label: 'Dispatched' },
+  { value: 'PARTIALLY_DISPATCHED', label: 'Partially dispatched' },
   { value: 'DELIVERED', label: 'Delivered' },
   { value: 'CANCELLED', label: 'Cancelled' },
 ];
@@ -19,6 +20,7 @@ const STATUS_PILL: Record<OrderStatus, string> = {
   PLACED: 'pill-neutral',
   CONFIRMED: 'pill-neutral',
   DISPATCHED: 'pill-neutral',
+  PARTIALLY_DISPATCHED: 'pill-warning',
   DELIVERED: 'pill-ok',
   CANCELLED: 'pill-danger',
 };

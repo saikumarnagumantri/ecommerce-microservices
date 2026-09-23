@@ -69,5 +69,6 @@ td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: mi
 .pill-ok { background: var(--ok-tint); color: var(--ok); }
 .pill-danger { background: var(--danger-tint); color: var(--danger); }
 .pill-neutral { background: var(--surface-2); color: var(--muted); }
+.pill-warning { background: var(--admin-tint); color: var(--admin); }
 
 .card { background: var(--surface); border-radius: 10px; border: 1px solid var(--line); }
