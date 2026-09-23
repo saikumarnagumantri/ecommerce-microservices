@@ -5,6 +5,12 @@ import { colors, spacing } from '../theme';
 
 const STEPS: OrderStatus[] = ['PLACED', 'CONFIRMED', 'DISPATCHED', 'DELIVERED'];
 
+/** PARTIALLY_DISPATCHED occupies the same progress slot as DISPATCHED — it's an alternate outcome of the same step, not a fifth step. */
+function stepIndex(status: OrderStatus): number {
+  if (status === 'PARTIALLY_DISPATCHED') return STEPS.indexOf('DISPATCHED');
+  return STEPS.indexOf(status);
+}
+
 interface Props {
   status: OrderStatus;
   events: { status: OrderStatus; createdAt: string }[];
@@ -24,14 +30,19 @@ export default function StatusTimeline({ status, events }: Props) {
     );
   }
 
-  const currentIndex = STEPS.indexOf(status);
+  const currentIndex = stepIndex(status);
 
   return (
     <View>
       {STEPS.map((step, i) => {
-        const event = events.find((e) => e.status === step);
+        const isDispatchStep = step === 'DISPATCHED';
+        const event = events.find((e) => e.status === step || (isDispatchStep && e.status === 'PARTIALLY_DISPATCHED'));
         const done = i <= currentIndex;
         const isCurrent = i === currentIndex;
+        const label =
+          isDispatchStep && status === 'PARTIALLY_DISPATCHED'
+            ? 'Partially dispatched'
+            : step.charAt(0) + step.slice(1).toLowerCase();
         return (
           <View key={step} style={styles.row}>
             <View style={styles.dotColumn}>
@@ -40,7 +51,7 @@ export default function StatusTimeline({ status, events }: Props) {
             </View>
             <View style={styles.stepText}>
               <Text style={[styles.stepLabel, isCurrent && styles.stepLabelCurrent, !done && styles.stepLabelPending]}>
-                {step.charAt(0) + step.slice(1).toLowerCase()}
+                {label}
               </Text>
               {event && <Text style={styles.stepDate}>{new Date(event.createdAt).toLocaleString()}</Text>}
             </View>

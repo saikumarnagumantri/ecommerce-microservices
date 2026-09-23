@@ -10,6 +10,7 @@ const STATUS_COLORS: Record<string, string> = {
   PLACED: colors.primary,
   CONFIRMED: colors.primary,
   DISPATCHED: colors.primary,
+  PARTIALLY_DISPATCHED: colors.primary,
   DELIVERED: colors.success,
   CANCELLED: colors.danger,
 };

@@ -7,6 +7,12 @@ import { extractErrorMessage } from '../../api/client';
 import StatusTimeline from '../../components/StatusTimeline';
 import { colors, radius, spacing } from '../../theme';
 
+const ITEM_STATUS_COLORS: Record<string, string> = {
+  PENDING: colors.muted,
+  DISPATCHED: colors.success,
+  UNAVAILABLE: colors.danger,
+};
+
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const orderId = Number(id);
@@ -80,16 +86,29 @@ export default function OrderDetailScreen() {
           <Text style={styles.sectionHeading}>Tracking</Text>
           <Text style={styles.trackingNumber}>{order.shipment.trackingNumber}</Text>
           <Text style={styles.trackingCarrier}>Carrier: {order.shipment.carrier}</Text>
+          {order.shipment.isPartial && (
+            <Text style={[styles.trackingCarrier, { color: colors.danger, marginTop: 4 }]}>
+              Partial dispatch — {order.shipment.reason}: {order.shipment.comment}
+            </Text>
+          )}
         </View>
       )}
 
       <Text style={styles.sectionHeading}>Items</Text>
-      {order.items.map((item) => (
-        <View key={item.productId} style={styles.itemRow}>
-          <Text style={styles.itemName} numberOfLines={1}>{item.name} × {item.quantity}</Text>
-          <Text style={styles.itemPrice}>${(item.price * item.quantity).toLocaleString()}</Text>
-        </View>
-      ))}
+      {order.items.map((item) => {
+        const showPill = order.status !== 'PLACED' && order.status !== 'CONFIRMED';
+        return (
+          <View key={item.productId} style={styles.itemRow}>
+            <View style={{ flex: 1, marginRight: spacing.sm }}>
+              <Text style={styles.itemName} numberOfLines={1}>{item.name} × {item.quantity}</Text>
+              {showPill && (
+                <Text style={[styles.itemStatus, { color: ITEM_STATUS_COLORS[item.dispatchStatus] }]}>{item.dispatchStatus}</Text>
+              )}
+            </View>
+            <Text style={styles.itemPrice}>${(item.price * item.quantity).toLocaleString()}</Text>
+          </View>
+        );
+      })}
       <View style={[styles.itemRow, styles.totalRow]}>
         <Text style={styles.totalLabel}>Total</Text>
         <Text style={styles.totalValue}>${order.totalAmount.toLocaleString()}</Text>
@@ -132,6 +151,7 @@ const styles = StyleSheet.create({
   trackingCarrier: { fontSize: 12, color: colors.muted, marginTop: 2 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: spacing.xs },
   itemName: { flex: 1, fontSize: 13, color: colors.text, marginRight: spacing.sm },
+  itemStatus: { fontSize: 10, fontWeight: '700', marginTop: 1, textTransform: 'uppercase' },
   itemPrice: { fontSize: 13, color: colors.text, fontVariant: ['tabular-nums'] },
   totalRow: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: spacing.sm, paddingTop: spacing.sm, marginBottom: spacing.lg },
   totalLabel: { fontSize: 14, fontWeight: '700', color: colors.text },
