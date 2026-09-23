@@ -5,7 +5,7 @@ import axios from 'axios';
 import { randomBytes, randomUUID } from 'crypto';
 import { PaginationQueryDto } from '@salescart/common';
 import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
-import { OrderItem } from './entities/order-item.entity';
+import { OrderItem, OrderItemDispatchStatus } from './entities/order-item.entity';
 import { OrderEvent } from './entities/order-event.entity';
 import { Shipment } from './entities/shipment.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -19,7 +19,7 @@ function generateOrderCode(): string {
 import { clearCart, getCart } from './external/cart.client';
 import { getAddress } from './external/users.client';
 import { releaseStock, reserveStock } from './external/inventory.client';
-import { ALLOWED_TRANSITIONS, CANNOT_CANCEL, CART_EMPTY, ORDER_NOT_FOUND } from './constants/orders.constants';
+import { ALLOWED_TRANSITIONS, CANNOT_CANCEL, CART_EMPTY, DISPATCH_REASON_REQUIRED, ORDER_NOT_FOUND } from './constants/orders.constants';
 
 function externalErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
@@ -209,13 +209,54 @@ export class OrdersService {
 
   async dispatch(orderId: number, dto: DispatchOrderDto, adminId: number): Promise<OrderDetailDto> {
     const order = await this.findOrThrow(orderId);
-    return this.transition(order, OrderStatus.DISPATCHED, adminId, `Dispatched via ${dto.carrier} (${dto.trackingNumber})`, async () => {
+    if (order.status !== OrderStatus.CONFIRMED) {
+      throw new ConflictException(`Cannot move an order from ${order.status} to ${OrderStatus.DISPATCHED}`);
+    }
+
+    const items = await this.itemRepo.findBy({ orderId: order.id });
+    const pending = items.filter((i) => i.dispatchStatus === OrderItemDispatchStatus.PENDING);
+    const pendingIds = new Set(pending.map((i) => i.productId));
+    const selected = new Set(dto.dispatchedProductIds);
+
+    const invalid = dto.dispatchedProductIds.filter((id) => !pendingIds.has(id));
+    if (invalid.length > 0) {
+      throw new BadRequestException(`These items are not eligible to dispatch: ${invalid.join(', ')}`);
+    }
+
+    const isPartial = selected.size < pending.length;
+    if (isPartial && (!dto.reason || !dto.comment)) {
+      throw new BadRequestException(DISPATCH_REASON_REQUIRED);
+    }
+
+    const heldBackItems = pending.filter((i) => !selected.has(i.productId));
+    const note = isPartial
+      ? `Partially dispatched: ${selected.size} of ${pending.length} items shipped via ${dto.carrier} (${dto.trackingNumber}). ${heldBackItems.length} item(s) unavailable — ${dto.reason}: ${dto.comment}`
+      : `Dispatched via ${dto.carrier} (${dto.trackingNumber})`;
+
+    return this.transition(order, isPartial ? OrderStatus.PARTIALLY_DISPATCHED : OrderStatus.DISPATCHED, adminId, note, async () => {
+      await this.itemRepo.save(
+        pending.map((i) => ({
+          ...i,
+          dispatchStatus: selected.has(i.productId) ? OrderItemDispatchStatus.DISPATCHED : OrderItemDispatchStatus.UNAVAILABLE,
+        })),
+      );
+
+      if (heldBackItems.length > 0) {
+        await releaseStock({
+          items: Object.fromEntries(heldBackItems.map((i) => [i.productId, { quantity: i.quantity }])),
+          refId: String(order.id),
+        });
+      }
+
       await this.shipmentRepo.save({
         orderId: order.id,
         carrier: dto.carrier,
         trackingNumber: dto.trackingNumber,
         dispatchedAt: new Date(),
         deliveredAt: null,
+        isPartial,
+        reason: isPartial ? (dto.reason ?? null) : null,
+        comment: isPartial ? (dto.comment ?? null) : null,
       });
     });
   }

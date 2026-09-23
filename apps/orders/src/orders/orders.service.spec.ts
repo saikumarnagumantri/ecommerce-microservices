@@ -7,6 +7,7 @@ import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderEvent } from './entities/order-event.entity';
 import { Shipment } from './entities/shipment.entity';
+import { OrderItemDispatchStatus } from './entities/order-item.entity';
 import * as cartClient from './external/cart.client';
 import * as usersClient from './external/users.client';
 import * as inventoryClient from './external/inventory.client';
@@ -66,7 +67,7 @@ describe('OrdersService', () => {
 
   beforeEach(() => {
     orderRepo = { findOneBy: jest.fn(), save: jest.fn(), delete: jest.fn(), createQueryBuilder: jest.fn() };
-    itemRepo = { findBy: jest.fn().mockResolvedValue([]) };
+    itemRepo = { findBy: jest.fn().mockResolvedValue([]), save: jest.fn() };
     eventRepo = { save: jest.fn(), find: jest.fn().mockResolvedValue([]) };
     shipmentRepo = { findOneBy: jest.fn().mockResolvedValue(null), save: jest.fn(), update: jest.fn() };
     jest.clearAllMocks();
@@ -172,18 +173,16 @@ describe('OrdersService', () => {
         expect.objectContaining({ orderId: 1, status: OrderStatus.CONFIRMED, actorId: 99 }),
       );
     });
+  });
 
-    it('dispatch creates a shipment and moves CONFIRMED -> DISPATCHED', async () => {
-      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
-      const { dataSource } = fakeDataSource();
-      const service = await buildService(dataSource);
+  describe('dispatch', () => {
+    const twoPendingItems = [
+      { id: 1, orderId: 1, productId: 101, name: 'Laptop', price: 1000, quantity: 1, dispatchStatus: OrderItemDispatchStatus.PENDING },
+      { id: 2, orderId: 1, productId: 102, name: 'Mouse', price: 20, quantity: 2, dispatchStatus: OrderItemDispatchStatus.PENDING },
+    ];
 
-      const result = await service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123' }, 99);
-
-      expect(result.status).toBe(OrderStatus.DISPATCHED);
-      expect(shipmentRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ orderId: 1, carrier: 'BlueDart', trackingNumber: 'ABC123' }),
-      );
+    beforeEach(() => {
+      itemRepo.findBy!.mockResolvedValue(twoPendingItems);
     });
 
     it('rejects dispatch on a PLACED (not yet confirmed) order', async () => {
@@ -192,8 +191,71 @@ describe('OrdersService', () => {
       const service = await buildService(dataSource);
 
       await expect(
-        service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123' }, 99),
+        service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101, 102] }, 99),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('dispatching every pending item creates a non-partial shipment and moves CONFIRMED -> DISPATCHED', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      const result = await service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101, 102] }, 99);
+
+      expect(result.status).toBe(OrderStatus.DISPATCHED);
+      expect(shipmentRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ orderId: 1, carrier: 'BlueDart', trackingNumber: 'ABC123', isPartial: false, reason: null, comment: null }),
+      );
+      expect(itemRepo.save).toHaveBeenCalledWith([
+        { ...twoPendingItems[0], dispatchStatus: OrderItemDispatchStatus.DISPATCHED },
+        { ...twoPendingItems[1], dispatchStatus: OrderItemDispatchStatus.DISPATCHED },
+      ]);
+      expect(inventoryClient.releaseStock).not.toHaveBeenCalled();
+    });
+
+    it('rejects a partial selection with no reason or comment', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await expect(
+        service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101] }, 99),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a partial dispatch with reason and comment, releases stock for held-back items, moves to PARTIALLY_DISPATCHED', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      const result = await service.dispatch(
+        1,
+        { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101], reason: 'OUT_OF_STOCK', comment: 'Only 1 left' },
+        99,
+      );
+
+      expect(result.status).toBe(OrderStatus.PARTIALLY_DISPATCHED);
+      expect(shipmentRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ isPartial: true, reason: 'OUT_OF_STOCK', comment: 'Only 1 left' }),
+      );
+      expect(itemRepo.save).toHaveBeenCalledWith([
+        { ...twoPendingItems[0], dispatchStatus: OrderItemDispatchStatus.DISPATCHED },
+        { ...twoPendingItems[1], dispatchStatus: OrderItemDispatchStatus.UNAVAILABLE },
+      ]);
+      expect(inventoryClient.releaseStock).toHaveBeenCalledWith({
+        items: { 102: { quantity: 2 } },
+        refId: '1',
+      });
+    });
+
+    it('rejects dispatching a product id that is not part of the order', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await expect(
+        service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [999] }, 99),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
