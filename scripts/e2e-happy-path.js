@@ -105,7 +105,7 @@ async function main() {
 
   step('Dispatch the order with a carrier and tracking number');
   const trackingNumber = `E2E${stamp}`;
-  const dispatched = await call('POST', `/admin/orders/${order.id}/dispatch`, { carrier: 'BlueDart', trackingNumber }, adminToken);
+  const dispatched = await call('POST', `/admin/orders/${order.id}/dispatch`, { carrier: 'BlueDart', trackingNumber, dispatchedProductIds: [product.id] }, adminToken);
   assert(dispatched.status === 'DISPATCHED', 'order moved to DISPATCHED');
   assert(dispatched.shipment?.trackingNumber === trackingNumber, 'shipment carries the tracking number');
 
@@ -122,6 +122,50 @@ async function main() {
   } catch (err) {
     assert(String(err.message).includes('401'), 'tampered token is rejected');
   }
+
+  step('Second scenario: place a two-item order and partially dispatch it');
+  const stamp2 = Date.now();
+  const email2 = `e2e-partial-${stamp2}@example.com`;
+  const password2 = 'password123';
+  await call('POST', '/auth/register', { email: email2, password: password2, name: 'E2E Partial Customer' });
+  const { accessToken: customer2Token } = await call('POST', '/auth/login', { email: email2, password: password2 });
+
+  const catalog2 = await call('GET', '/products?limit=2');
+  assert(catalog2.data.length >= 2, 'catalog has at least two products for the partial-dispatch scenario');
+  const [productA, productB] = catalog2.data;
+
+  await call('POST', `/admin/inventory/${productA.id}/restock`, { quantity: 10 }, adminToken);
+  await call('POST', `/admin/inventory/${productB.id}/restock`, { quantity: 10 }, adminToken);
+
+  const address2 = await call('POST', '/me/addresses', {
+    line1: '2 E2E Partial Street',
+    city: 'Pune',
+    state: 'MH',
+    postalCode: '411001',
+    country: 'India',
+  }, customer2Token);
+
+  await call('POST', '/cart/items', { productId: productA.id, quantity: 1 }, customer2Token);
+  await call('POST', '/cart/items', { productId: productB.id, quantity: 1 }, customer2Token);
+  const order2 = await call('POST', '/orders', { addressId: address2.id }, customer2Token);
+
+  await call('PATCH', `/admin/orders/${order2.id}/confirm`, undefined, adminToken);
+  const partial = await call(
+    'POST',
+    `/admin/orders/${order2.id}/dispatch`,
+    { carrier: 'BlueDart', trackingNumber: `PARTIAL${stamp2}`, dispatchedProductIds: [productA.id], reason: 'OUT_OF_STOCK', comment: 'Product B ran out during packing' },
+    adminToken,
+  );
+  assert(partial.status === 'PARTIALLY_DISPATCHED', 'order moved to PARTIALLY_DISPATCHED');
+  assert(partial.items.find((i) => i.productId === productA.id).dispatchStatus === 'DISPATCHED', 'dispatched item is marked DISPATCHED');
+  assert(partial.items.find((i) => i.productId === productB.id).dispatchStatus === 'UNAVAILABLE', 'held-back item is marked UNAVAILABLE');
+  assert(partial.shipment.isPartial === true, 'shipment records isPartial');
+
+  const delivered2 = await call('PATCH', `/admin/orders/${order2.id}/deliver`, undefined, adminToken);
+  assert(delivered2.status === 'DELIVERED', 'partially dispatched order can still be marked DELIVERED');
+
+  const customerView2 = await call('GET', `/orders/${order2.id}`, undefined, customer2Token);
+  assert(customerView2.hasUnseenUpdate === false, "opening the order cleared the customer's unseen flag");
 
   console.log(`\nPASS — full happy path verified end to end (customer: ${customer.email}, order #${order.id}).`);
 }

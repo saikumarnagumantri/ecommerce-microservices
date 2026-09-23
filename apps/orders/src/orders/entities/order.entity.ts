@@ -42,7 +42,7 @@ export class Order {
   @Column({ type: 'int' })
   userId!: number;
 
-  @Column({ type: 'varchar', length: 16, default: OrderStatus.PLACED })
+  @Column({ type: 'varchar', length: 32, default: OrderStatus.PLACED })
   status!: OrderStatus;
 
   @Column({ type: 'int' })

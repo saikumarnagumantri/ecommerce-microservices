@@ -10,7 +10,7 @@ export class OrderEvent {
   @Column({ type: 'int' })
   orderId!: number;
 
-  @Column({ type: 'varchar', length: 16 })
+  @Column({ type: 'varchar', length: 32 })
   status!: OrderStatus;
 
   @Column({ type: 'text', nullable: true })
