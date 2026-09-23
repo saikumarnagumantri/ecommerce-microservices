@@ -10,6 +10,7 @@ import { OrderEvent } from './entities/order-event.entity';
 import { Shipment } from './entities/shipment.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { DispatchOrderDto } from './dto/dispatch.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { AdminOrderQueryDto } from './dto/order-query.dto';
 import { BulkConfirmResultDto, OrderDetailDto, PagedOrdersDto } from './dto/order-response.dto';
 
@@ -122,6 +123,10 @@ export class OrdersService {
   async getOrderDetailForUser(userId: number, orderId: number): Promise<OrderDetailDto> {
     const order = await this.orderRepo.findOneBy({ id: orderId, userId });
     if (!order) throw new NotFoundException(ORDER_NOT_FOUND);
+    if (order.hasUnseenUpdate) {
+      order.hasUnseenUpdate = false;
+      await this.orderRepo.save(order);
+    }
     return this.toDetail(order);
   }
 
@@ -193,12 +198,14 @@ export class OrdersService {
     });
   }
 
-  async adminCancel(orderId: number, adminId: number): Promise<OrderDetailDto> {
+  async adminCancel(orderId: number, adminId: number, dto: CancelOrderDto): Promise<OrderDetailDto> {
     const order = await this.findOrThrow(orderId);
     if (!['PLACED', 'CONFIRMED'].includes(order.status)) {
       throw new ConflictException(CANNOT_CANCEL);
     }
-    return this.transition(order, OrderStatus.CANCELLED, adminId, 'Cancelled by admin', async () => {
+    return this.transition(order, OrderStatus.CANCELLED, adminId, `Cancelled by admin — ${dto.reason}: ${dto.comment}`, async () => {
+      order.cancelReason = dto.reason;
+      order.cancelComment = dto.comment;
       const items = await this.itemRepo.findBy({ orderId: order.id });
       await releaseStock({
         items: Object.fromEntries(items.map((i) => [i.productId, { quantity: i.quantity }])),
@@ -291,6 +298,11 @@ export class OrdersService {
     if (sideEffect) await sideEffect();
 
     order.status = target;
+    if (
+      [OrderStatus.PARTIALLY_DISPATCHED, OrderStatus.DISPATCHED, OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(target)
+    ) {
+      order.hasUnseenUpdate = true;
+    }
     await this.orderRepo.save(order);
     await this.eventRepo.save({ orderId: order.id, status: target, note, actorId });
 
@@ -319,6 +331,7 @@ export class OrdersService {
         totalAmount: o.totalAmount,
         paymentMethod: o.paymentMethod,
         createdAt: o.createdAt,
+        hasUnseenUpdate: o.hasUnseenUpdate,
       })),
       total,
       page,
@@ -343,8 +356,9 @@ export class OrdersService {
       totalAmount: order.totalAmount,
       paymentMethod: order.paymentMethod,
       createdAt: order.createdAt,
+      hasUnseenUpdate: order.hasUnseenUpdate,
       shippingAddress: order.shippingAddress,
-      items: items.map((i) => ({ productId: i.productId, name: i.name, price: i.price, quantity: i.quantity })),
+      items: items.map((i) => ({ productId: i.productId, name: i.name, price: i.price, quantity: i.quantity, dispatchStatus: i.dispatchStatus })),
       events: events.map((e) => ({ status: e.status, note: e.note, createdAt: e.createdAt })),
       shipment: shipment
         ? {
@@ -352,6 +366,9 @@ export class OrdersService {
             trackingNumber: shipment.trackingNumber,
             dispatchedAt: shipment.dispatchedAt,
             deliveredAt: shipment.deliveredAt,
+            isPartial: shipment.isPartial,
+            reason: shipment.reason,
+            comment: shipment.comment,
           }
         : null,
     };

@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from '@salescart/common';
 import { OrdersService } from './orders.service';
 import { AdminOrderQueryDto } from './dto/order-query.dto';
 import { DispatchOrderDto } from './dto/dispatch.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { BulkConfirmDto } from './dto/bulk-confirm.dto';
 import { BulkConfirmResultDto, OrderDetailDto, PagedOrdersDto } from './dto/order-response.dto';
 
@@ -68,8 +69,9 @@ export class AdminOrdersController {
   @ApiOkResponse({ type: OrderDetailDto })
   cancel(
     @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CancelOrderDto,
     @CurrentUser() admin: AuthenticatedUser,
   ): Promise<OrderDetailDto> {
-    return this.ordersService.adminCancel(id, admin.id);
+    return this.ordersService.adminCancel(id, admin.id, dto);
   }
 }

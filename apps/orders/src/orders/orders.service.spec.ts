@@ -259,6 +259,75 @@ describe('OrdersService', () => {
     });
   });
 
+  describe('adminCancel', () => {
+    it('requires a reason and comment, releases stock, and records them on the order', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.PLACED } as Order);
+      itemRepo.findBy!.mockResolvedValue([{ productId: 101, quantity: 3 }]);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      const result = await service.adminCancel(1, 99, { reason: 'OUT_OF_STOCK', comment: 'No stock left' });
+
+      expect(result.status).toBe(OrderStatus.CANCELLED);
+      expect(inventoryClient.releaseStock).toHaveBeenCalledWith({
+        items: { 101: { quantity: 3 } },
+        refId: '1',
+      });
+      expect(orderRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ cancelReason: 'OUT_OF_STOCK', cancelComment: 'No stock left' }),
+      );
+    });
+
+    it('rejects cancelling a DISPATCHED order', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.DISPATCHED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await expect(
+        service.adminCancel(1, 99, { reason: 'OUT_OF_STOCK', comment: 'No stock left' }),
+      ).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('hasUnseenUpdate', () => {
+    it('flags the order unseen when an admin dispatches it', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      itemRepo.findBy!.mockResolvedValue([
+        { id: 1, orderId: 1, productId: 101, name: 'Laptop', price: 1000, quantity: 1, dispatchStatus: OrderItemDispatchStatus.PENDING },
+      ]);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101] }, 99);
+
+      expect(orderRepo.save).toHaveBeenCalledWith(expect.objectContaining({ hasUnseenUpdate: true }));
+    });
+
+    it('does not flag the order when an admin merely confirms it', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.PLACED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await service.confirm(1, 99);
+
+      expect(orderRepo.save).toHaveBeenCalledWith(expect.not.objectContaining({ hasUnseenUpdate: true }));
+    });
+
+    it('clears the flag when the owning customer opens the order, but an admin viewing it leaves the flag alone', async () => {
+      const order = { id: 1, userId: 1, status: OrderStatus.DISPATCHED, hasUnseenUpdate: true } as Order;
+      orderRepo.findOneBy!.mockResolvedValue(order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await service.getOrderDetailForUser(1, 1);
+      expect(orderRepo.save).toHaveBeenCalledWith(expect.objectContaining({ hasUnseenUpdate: false }));
+
+      (orderRepo.save as jest.Mock).mockClear();
+      await service.adminGetDetail(1);
+      expect(orderRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('cancelForUser', () => {
     it('throws NotFoundException for another user\'s order', async () => {
       orderRepo.findOneBy!.mockResolvedValue(null);
