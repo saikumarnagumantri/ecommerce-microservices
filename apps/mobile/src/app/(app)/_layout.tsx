@@ -1,10 +1,12 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { useCart } from '../../context/CartContext';
+import { useOrdersBadge } from '../../context/OrdersContext';
 import { colors } from '../../theme';
 
 export default function AppTabsLayout() {
   const { itemCount } = useCart();
+  const { unseenCount } = useOrdersBadge();
 
   return (
     <Tabs
@@ -19,7 +21,10 @@ export default function AppTabsLayout() {
         name="cart"
         options={{ title: 'Cart', tabBarBadge: itemCount > 0 ? itemCount : undefined }}
       />
-      <Tabs.Screen name="orders" options={{ title: 'My Orders', tabBarLabel: 'Orders' }} />
+      <Tabs.Screen
+        name="orders"
+        options={{ title: 'My Orders', tabBarLabel: 'Orders', tabBarBadge: unseenCount > 0 ? unseenCount : undefined }}
+      />
       <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
     </Tabs>
   );

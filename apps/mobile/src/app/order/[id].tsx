@@ -5,6 +5,7 @@ import * as ordersApi from '../../api/orders';
 import { OrderDetail } from '../../api/types';
 import { extractErrorMessage } from '../../api/client';
 import StatusTimeline from '../../components/StatusTimeline';
+import { useOrdersBadge } from '../../context/OrdersContext';
 import { colors, radius, spacing } from '../../theme';
 
 const ITEM_STATUS_COLORS: Record<string, string> = {
@@ -19,13 +20,17 @@ export default function OrderDetailScreen() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const { refresh: refreshOrdersBadge } = useOrdersBadge();
 
   const load = useCallback(() => {
     ordersApi
       .getOrder(orderId)
-      .then(setOrder)
+      .then((o) => {
+        setOrder(o);
+        void refreshOrdersBadge();
+      })
       .catch((err) => setError(extractErrorMessage(err, 'Could not load this order')));
-  }, [orderId]);
+  }, [orderId, refreshOrdersBadge]);
 
   useFocusEffect(load);
 
