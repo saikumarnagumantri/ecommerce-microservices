@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { BulkConfirmResult, OrderDetail, OrderStatus, OrderSummary, Paged } from './types';
+import { BulkConfirmResult, CancelReason, OrderDetail, OrderStatus, OrderSummary, Paged, PartialDispatchReason } from './types';
 
 export interface OrderQuery {
   page?: number;
@@ -20,11 +20,18 @@ export const confirmOrder = (id: number): Promise<OrderDetail> =>
 export const confirmOrdersBulk = (orderIds: number[]): Promise<BulkConfirmResult> =>
   apiClient.patch('/admin/orders/confirm-bulk', { orderIds }).then((r) => r.data);
 
-export const dispatchOrder = (id: number, carrier: string, trackingNumber: string): Promise<OrderDetail> =>
-  apiClient.post(`/admin/orders/${id}/dispatch`, { carrier, trackingNumber }).then((r) => r.data);
+export const dispatchOrder = (
+  id: number,
+  carrier: string,
+  trackingNumber: string,
+  dispatchedProductIds: number[],
+  reason?: PartialDispatchReason,
+  comment?: string,
+): Promise<OrderDetail> =>
+  apiClient.post(`/admin/orders/${id}/dispatch`, { carrier, trackingNumber, dispatchedProductIds, reason, comment }).then((r) => r.data);
 
 export const deliverOrder = (id: number): Promise<OrderDetail> =>
   apiClient.patch(`/admin/orders/${id}/deliver`).then((r) => r.data);
 
-export const cancelOrder = (id: number): Promise<OrderDetail> =>
-  apiClient.post(`/admin/orders/${id}/cancel`).then((r) => r.data);
+export const cancelOrder = (id: number, reason: CancelReason, comment: string): Promise<OrderDetail> =>
+  apiClient.post(`/admin/orders/${id}/cancel`, { reason, comment }).then((r) => r.data);
