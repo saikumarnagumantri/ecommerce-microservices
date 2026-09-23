@@ -164,6 +164,12 @@ async function main() {
   const delivered2 = await call('PATCH', `/admin/orders/${order2.id}/deliver`, undefined, adminToken);
   assert(delivered2.status === 'DELIVERED', 'partially dispatched order can still be marked DELIVERED');
 
+  const ordersBeforeOpen = await call('GET', '/orders', undefined, customer2Token);
+  assert(
+    ordersBeforeOpen.data.find((o) => o.id === order2.id)?.hasUnseenUpdate === true,
+    'the unseen flag is actually set before the customer opens the order (not a vacuous check)',
+  );
+
   const customerView2 = await call('GET', `/orders/${order2.id}`, undefined, customer2Token);
   assert(customerView2.hasUnseenUpdate === false, "opening the order cleared the customer's unseen flag");
 

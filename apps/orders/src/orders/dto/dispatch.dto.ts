@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMinSize, ArrayUnique, IsArray, IsIn, IsInt, IsOptional, IsString, MinLength } from 'class-validator';
+import { ArrayMinSize, ArrayUnique, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { PARTIAL_DISPATCH_REASONS } from '../constants/orders.constants';
 import type { PartialDispatchReason } from '../constants/orders.constants';
 
@@ -7,11 +7,13 @@ export class DispatchOrderDto {
   @ApiProperty({ example: 'BlueDart' })
   @IsString()
   @MinLength(1)
+  @MaxLength(128)
   carrier!: string;
 
   @ApiProperty({ example: 'BD48217730IN' })
   @IsString()
   @MinLength(1)
+  @MaxLength(128)
   trackingNumber!: string;
 
   @ApiProperty({
@@ -30,9 +32,9 @@ export class DispatchOrderDto {
   @IsIn(PARTIAL_DISPATCH_REASONS)
   reason?: PartialDispatchReason;
 
-  @ApiPropertyOptional({ description: 'Required whenever reason is required.' })
+  @ApiPropertyOptional({ description: 'Required whenever reason is required. Must contain at least one non-whitespace character.' })
   @IsOptional()
   @IsString()
-  @MinLength(1)
+  @Matches(/\S/, { message: 'comment must not be blank' })
   comment?: string;
 }

@@ -231,7 +231,7 @@ export class OrdersService {
     }
 
     const isPartial = selected.size < pending.length;
-    if (isPartial && (!dto.reason || !dto.comment)) {
+    if (isPartial && (!dto.reason || !dto.comment?.trim())) {
       throw new BadRequestException(DISPATCH_REASON_REQUIRED);
     }
 
@@ -241,13 +241,12 @@ export class OrdersService {
       : `Dispatched via ${dto.carrier} (${dto.trackingNumber})`;
 
     return this.transition(order, isPartial ? OrderStatus.PARTIALLY_DISPATCHED : OrderStatus.DISPATCHED, adminId, note, async () => {
-      await this.itemRepo.save(
-        pending.map((i) => ({
-          ...i,
-          dispatchStatus: selected.has(i.productId) ? OrderItemDispatchStatus.DISPATCHED : OrderItemDispatchStatus.UNAVAILABLE,
-        })),
-      );
-
+      // Order matters: if any of these three steps fails, the ones after it
+      // never ran, and transition() never persists order.status either — so
+      // the retry-eligibility check above (`dispatchStatus === PENDING`)
+      // stays accurate only if the item-status write happens last. Doing it
+      // first would leave items permanently stuck as neither PENDING (can't
+      // retry) nor actually shipped (releaseStock/shipment never happened).
       if (heldBackItems.length > 0) {
         await releaseStock({
           items: Object.fromEntries(heldBackItems.map((i) => [i.productId, { quantity: i.quantity }])),
@@ -265,6 +264,13 @@ export class OrdersService {
         reason: isPartial ? (dto.reason ?? null) : null,
         comment: isPartial ? (dto.comment ?? null) : null,
       });
+
+      await this.itemRepo.save(
+        pending.map((i) => ({
+          ...i,
+          dispatchStatus: selected.has(i.productId) ? OrderItemDispatchStatus.DISPATCHED : OrderItemDispatchStatus.UNAVAILABLE,
+        })),
+      );
     });
   }
 
@@ -299,7 +305,8 @@ export class OrdersService {
 
     order.status = target;
     if (
-      [OrderStatus.PARTIALLY_DISPATCHED, OrderStatus.DISPATCHED, OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(target)
+      [OrderStatus.PARTIALLY_DISPATCHED, OrderStatus.DISPATCHED, OrderStatus.DELIVERED, OrderStatus.CANCELLED].includes(target) &&
+      actorId !== order.userId
     ) {
       order.hasUnseenUpdate = true;
     }

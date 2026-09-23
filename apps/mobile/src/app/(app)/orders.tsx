@@ -4,6 +4,7 @@ import { useFocusEffect, router } from 'expo-router';
 import * as ordersApi from '../../api/orders';
 import { OrderSummary } from '../../api/types';
 import { extractErrorMessage } from '../../api/client';
+import { useOrdersBadge } from '../../context/OrdersContext';
 import { colors, radius, spacing } from '../../theme';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -19,6 +20,7 @@ export default function OrdersScreen() {
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { refresh: refreshOrdersBadge } = useOrdersBadge();
 
   useFocusEffect(
     useCallback(() => {
@@ -29,8 +31,9 @@ export default function OrdersScreen() {
         .then((result) => { if (!cancelled) setOrders(result.data); })
         .catch((err) => { if (!cancelled) setError(extractErrorMessage(err, 'Could not load your orders')); })
         .finally(() => { if (!cancelled) setLoading(false); });
+      void refreshOrdersBadge();
       return () => { cancelled = true; };
-    }, []),
+    }, [refreshOrdersBadge]),
   );
 
   if (loading) {

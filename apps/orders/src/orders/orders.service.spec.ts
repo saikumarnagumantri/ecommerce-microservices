@@ -223,6 +223,29 @@ describe('OrdersService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('rejects a partial selection with a whitespace-only comment', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await expect(
+        service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101], reason: 'OUT_OF_STOCK', comment: '   ' }, 99),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('does not mark any item dispatched if creating the shipment fails, so a retry is still possible', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
+      shipmentRepo.save!.mockRejectedValue(new Error('db down'));
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await expect(
+        service.dispatch(1, { carrier: 'BlueDart', trackingNumber: 'ABC123', dispatchedProductIds: [101, 102] }, 99),
+      ).rejects.toThrow('db down');
+
+      expect(itemRepo.save).not.toHaveBeenCalled();
+    });
+
     it('accepts a partial dispatch with reason and comment, releases stock for held-back items, moves to PARTIALLY_DISPATCHED', async () => {
       orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
       const { dataSource } = fakeDataSource();
@@ -290,6 +313,28 @@ describe('OrdersService', () => {
   });
 
   describe('hasUnseenUpdate', () => {
+    it('flags the order unseen when an admin cancels it', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, status: OrderStatus.PLACED } as Order);
+      itemRepo.findBy!.mockResolvedValue([{ productId: 101, quantity: 3 }]);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await service.adminCancel(1, 99, { reason: 'OUT_OF_STOCK', comment: 'No stock left' });
+
+      expect(orderRepo.save).toHaveBeenCalledWith(expect.objectContaining({ hasUnseenUpdate: true }));
+    });
+
+    it('does not flag the order when the customer cancels their own order', async () => {
+      orderRepo.findOneBy!.mockResolvedValue({ id: 1, userId: 1, status: OrderStatus.PLACED } as Order);
+      itemRepo.findBy!.mockResolvedValue([{ productId: 101, quantity: 3 }]);
+      const { dataSource } = fakeDataSource();
+      const service = await buildService(dataSource);
+
+      await service.cancelForUser(1, 1);
+
+      expect(orderRepo.save).toHaveBeenCalledWith(expect.not.objectContaining({ hasUnseenUpdate: true }));
+    });
+
     it('flags the order unseen when an admin dispatches it', async () => {
       orderRepo.findOneBy!.mockResolvedValue({ id: 1, status: OrderStatus.CONFIRMED } as Order);
       itemRepo.findBy!.mockResolvedValue([

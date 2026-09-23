@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsString, MinLength } from 'class-validator';
+import { IsIn, IsString, Matches } from 'class-validator';
 import { CANCEL_REASONS } from '../constants/orders.constants';
 import type { CancelReason } from '../constants/orders.constants';
 
@@ -8,8 +8,8 @@ export class CancelOrderDto {
   @IsIn(CANCEL_REASONS)
   reason!: CancelReason;
 
-  @ApiProperty({ example: 'Customer called asking to cancel.' })
+  @ApiProperty({ example: 'Customer called asking to cancel.', description: 'Must contain at least one non-whitespace character.' })
   @IsString()
-  @MinLength(1)
+  @Matches(/\S/, { message: 'comment must not be blank' })
   comment!: string;
 }

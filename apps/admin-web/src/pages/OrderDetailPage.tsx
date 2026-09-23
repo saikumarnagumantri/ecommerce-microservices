@@ -94,7 +94,7 @@ export default function OrderDetailPage() {
   const isPartialSelection = dispatchSelected.size > 0 && dispatchSelected.size < order.items.length;
   const dispatchDisabled =
     busy || !carrier || !trackingNumber || dispatchSelected.size === 0 ||
-    (isPartialSelection && (!dispatchReason || !dispatchComment));
+    (isPartialSelection && (!dispatchReason || !dispatchComment.trim()));
   const showItemPills = order.status !== 'PLACED' && order.status !== 'CONFIRMED';
 
   return (
@@ -122,12 +122,12 @@ export default function OrderDetailPage() {
                   </span>
                 )}
               </span>
-              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{'₹'}{(item.price * item.quantity).toLocaleString()}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>${(item.price * item.quantity).toLocaleString()}</span>
             </div>
           ))}
           <div style={{ ...styles.itemRow, ...styles.totalRow }}>
             <strong>Total</strong>
-            <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{'₹'}{order.totalAmount.toLocaleString()}</strong>
+            <strong style={{ fontVariantNumeric: 'tabular-nums' }}>${order.totalAmount.toLocaleString()}</strong>
           </div>
           <div style={styles.itemRow}>
             <span style={{ color: 'var(--muted)' }}>Payment</span>
@@ -144,7 +144,10 @@ export default function OrderDetailPage() {
           <h2 style={{ ...styles.sectionHeading, marginTop: 20 }}>Timeline</h2>
           {order.events.map((e, i) => (
             <div key={i} style={styles.eventRow}>
-              <span style={styles.eventStatus}>{e.status}</span>
+              <div>
+                <span style={styles.eventStatus}>{e.status}</span>
+                {e.note && <div style={styles.eventNote}>{e.note}</div>}
+              </div>
               <span style={styles.eventDate}>{new Date(e.createdAt).toLocaleString()}</span>
             </div>
           ))}
@@ -249,7 +252,7 @@ export default function OrderDetailPage() {
               <button
                 className="btn-danger"
                 style={styles.actionButton}
-                disabled={busy || !cancelReason || !cancelComment}
+                disabled={busy || !cancelReason || !cancelComment.trim()}
                 onClick={() => runAction(() => ordersApi.cancelOrder(order.id, cancelReason as CancelReason, cancelComment))}
               >
                 Cancel order
@@ -278,6 +281,7 @@ const styles: Record<string, React.CSSProperties> = {
   address: { fontSize: 13, lineHeight: 1.6, margin: 0 },
   eventRow: { display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted var(--line)' },
   eventStatus: { fontWeight: 600 },
+  eventNote: { color: 'var(--muted)', fontSize: 11, marginTop: 2, maxWidth: 320 },
   eventDate: { color: 'var(--muted)' },
   actionsCard: { padding: 20, background: 'var(--admin-tint)', border: '1px solid var(--admin)' },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginTop: 10, marginBottom: 4 },

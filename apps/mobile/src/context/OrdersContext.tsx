@@ -18,8 +18,12 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
       setUnseenCount(0);
       return;
     }
-    const result = await ordersApi.getOrders();
-    setUnseenCount(result.data.filter((o) => o.hasUnseenUpdate).length);
+    try {
+      const result = await ordersApi.getOrders();
+      setUnseenCount(result.data.filter((o) => o.hasUnseenUpdate).length);
+    } catch {
+      // Best-effort badge — a transient network/auth failure just leaves the count stale, not the app broken.
+    }
   }, [user]);
 
   useEffect(() => {
