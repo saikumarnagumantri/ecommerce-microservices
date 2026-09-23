@@ -92,13 +92,15 @@ export interface Cart {
   total: number;
 }
 
-export type OrderStatus = 'PLACED' | 'CONFIRMED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+export type OrderStatus = 'PLACED' | 'CONFIRMED' | 'DISPATCHED' | 'PARTIALLY_DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+export type ItemDispatchStatus = 'PENDING' | 'DISPATCHED' | 'UNAVAILABLE';
 
 export interface OrderItem {
   productId: number;
   name: string;
   price: number;
   quantity: number;
+  dispatchStatus: ItemDispatchStatus;
 }
 
 export interface OrderEvent {
@@ -112,6 +114,9 @@ export interface Shipment {
   trackingNumber: string;
   dispatchedAt: string;
   deliveredAt: string | null;
+  isPartial: boolean;
+  reason: string | null;
+  comment: string | null;
 }
 
 export interface OrderSummary {
@@ -123,6 +128,7 @@ export interface OrderSummary {
   totalAmount: number;
   paymentMethod: 'COD';
   createdAt: string;
+  hasUnseenUpdate: boolean;
 }
 
 export interface OrderDetail extends OrderSummary {
